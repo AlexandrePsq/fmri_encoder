@@ -3,7 +3,6 @@ import gdown
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from pathlib import Path
 
 
 
@@ -16,7 +15,7 @@ def load_model_and_tokenizer(trained_model='../data/glove.6B.300d.txt'):
     Returns:
         - model: dict
     """
-    if ~os.path.exists(trained_model)
+    if ~os.path.exists(trained_model):
         url = "https://nlp.stanford.edu/data/glove.6B.zip"
         output = '../data/glove.zip'
         gdown.download(url, output, quiet=False)
