@@ -14,6 +14,7 @@ def load_model_and_tokenizer(trained_model='../data/glove.6B.300d.txt'):
         - trained_model: str
     Returns:
         - model: dict
+        - tokenizer: None
     """
     if ~os.path.exists(trained_model):
         url = "https://nlp.stanford.edu/data/glove.6B.zip"
@@ -21,7 +22,7 @@ def load_model_and_tokenizer(trained_model='../data/glove.6B.300d.txt'):
         gdown.download(url, output, quiet=False)
         os.system(f'unzip {output}')
     model = init_embeddings(trained_model=trained_model)
-    return model
+    return model, None
 
 
 def init_embeddings(trained_model='../data/glove.6B.300d.txt'):
