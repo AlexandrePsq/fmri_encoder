@@ -8,16 +8,16 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-def load_model_and_tokenizer(name):
+def load_model_and_tokenizer(trained_model='gpt2'):
     """Load a HuggingFace model and the associated tokenizer given its name.
     Args:
-        - name: str
+        - trained_model: str
     Returns:    
         - model: HuggingFace model
         - tokenizer: HuggingFace tokenizer
     """
-    model = AutoModelForCausalLM.from_pretrained('gpt2')
-    tokenizer = AutoTokenizer.from_pretrained('gpt2')
+    model = AutoModelForCausalLM.from_pretrained(trained_model)
+    tokenizer = AutoTokenizer.from_pretrained(trained_model)
     return model, tokenizer
 
 def pad_to_max_length(sequence, max_seq_length, space=220, special_token_end=50256):
@@ -122,7 +122,7 @@ def match_tokenized_to_untokenized(tokenized_sent, untokenized_sent, connection_
     tokenized_sent_index += 1
   return mapping
 
-def extract_gpt2_features(
+def extract_features(
     words, 
     model, 
     tokenizer, 
@@ -141,7 +141,7 @@ def extract_gpt2_features(
     - model: HuggingFace model
     - tokenizer: HuggingFace tokenizer
   """
-  hidden_states_activations = []
+  features = []
   iterator = ' '.join(words)
   
   tokenized_text = tokenizer.tokenize(iterator)
@@ -175,11 +175,11 @@ def extract_gpt2_features(
     word_activation = []
     word_activation.append([activations[:, index, :] for index in mapping[word_index]])
     word_activation = np.vstack(word_activation)
-    hidden_states_activations.append(np.mean(word_activation, axis=0).reshape(-1))# list of elements of shape: (#nb_layers, hidden_state_dimension).reshape(-1)
+    features.append(np.mean(word_activation, axis=0).reshape(-1))# list of elements of shape: (#nb_layers, hidden_state_dimension).reshape(-1)
   #After vstacking it will be of shape: (batch_size, #nb_layers*hidden_state_dimension)
       
-  hidden_states_activations = pd.DataFrame(np.vstack(hidden_states_activations), columns=['hidden_state-layer-{}-{}'.format(layer, index) for layer in np.arange(1 + NUM_HIDDEN_LAYERS) for index in range(1, 1 + FEATURE_COUNT)])
+  features = pd.DataFrame(np.vstack(features), columns=['hidden_state-layer-{}-{}'.format(layer, index) for layer in np.arange(1 + NUM_HIDDEN_LAYERS) for index in range(1, 1 + FEATURE_COUNT)])
   
-  return hidden_states_activations
+  return features
 
 
