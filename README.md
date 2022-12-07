@@ -1,5 +1,70 @@
 # Encoding Tutorial for MAIN Conference - Montreal 2023
 
-## Extracting features with GloVe and GPT-2 
+Repository containing several functions/classes to 
+* 1) extract features from a text using a GloVe or a GPT-2 model.
+* 2) use these features to fit fMRI brain data.
 
-## Creating an Encoding Pipeline to predict fMRI brain data using modelderived features
+
+## 1) Extracting features with GloVe and GPT-2 
+
+In the folder ‘/models‘, there are two scripts to extract the features from GloVe and GPT-2.
+Usecase:
+
+```python
+stimuli = pd.read_csv('data/word_run1.csv')
+words = stimuli['word].values
+```
+### GloVe
+
+```python
+from models.extract_glove_features import extract_features, load_model_and_tokenizer
+
+model = load_model_and_tokenizer()
+features = extract_features(
+    words, 
+    model, 
+    FEATURE_COUNT=300,
+    )
+```
+
+
+### GPT-2
+
+```python
+from models.extract_gpt2_features import extract_features, load_model_and_tokenizer
+
+model, tokenizer = load_model_and_tokenizer('gpt2')
+features = extract_features(
+    words, 
+    model, 
+    tokenizer,
+    FEATURE_COUNT=768,
+    NUM_HIDDEN_LAYERS=12,
+    )
+```
+
+## 2) Creating an Encoding Pipeline to predict fMRI brain data using modelderived features
+
+### Loading and processing fMRI data
+
+```python
+
+
+```
+
+
+### Creating the encoding pipeline
+
+```python
+
+
+```
+
+
+
+### Visualizing results
+
+```python
+
+
+```
