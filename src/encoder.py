@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 
 from .metrics import get_metric
 from .utils import get_linearmodel
-from .data import FeatureSelector, DesignMatrixBuilder, DimensionReductor
+from .features import FeatureSelector, DesignMatrixBuilder, DimensionReductor
 
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
 

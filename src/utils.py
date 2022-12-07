@@ -1,6 +1,13 @@
 import os
 import yaml
+import logging
 
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.cluster import FeatureAgglomeration
+from sklearn.linear_model import RidgeCV, LinearRegression
+
+logging.basicConfig(filename='loggings.log', level=logging.INFO)
 
 
 def check_folder(path):
@@ -48,3 +55,74 @@ def write(path, text, end='\n'):
     with open(path, 'a+') as f:
         f.write(text)
         f.write(end)
+
+
+class Identity(PCA):
+    def __init__(self):
+        """Implement identity operator.
+        """
+        pass
+
+    def fit(self, X, y):
+        pass
+
+    def transform(self, X):
+        return X
+    
+    def fit_transform(self, X, y=None):
+        self.fit(X, y=y)
+        return self.transform(X)
+    
+    def inverse_transform(self, X):
+        return X
+
+
+def get_possible_linear_models():
+    """Fetch possible reduction methods.
+    Returns:
+        - list
+    """
+    return ['ridgecv', 'glm']
+
+def get_possible_reduction_methods():
+    """Fetch possible reduction methods.
+    Returns:
+        - list
+    """
+    return [None, 'pca', 'agglomerative_clustering']
+
+
+def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10):
+    """Retrieve the 
+    """
+    if name=='ridgecv':
+        logging.info(f'Loading RidgeCV, with {nb_alphas} alphas varying logarithimicly between {alpha_min} and {alpha_max}...')
+        return RidgeCV(
+            np.logspace(alpha_min, alpha_max, nb_alphas),
+            fit_intercept=True,
+            alpha_per_target=False,
+        )
+    elif name=='glm':
+        logging.info(f'Loading LinearRegression...')
+        return LinearRegression(fit_intercept=True)
+    elif ~isinstance(name, str):
+        logging.warning('The model seems to be custom.\nUsing it directly for the encoding analysis.')
+        return name 
+    else:
+        logging.error(f"Unrecognized model {name}. Please select among ['ridgecv', 'glm] or a custom encoding model.")
+
+
+def get_reduction_method(method, ndim=None):
+    """
+    Args:
+        - method: str
+        - ndim: int
+    Returns:
+        - output: built-in reduction operator
+    """
+    if method is None:
+        return Identity()
+    elif method=="pca":
+        return PCA(n_components=ndim)
+    elif method=='agglomerative_clustering':
+        return FeatureAgglomeration(n_clusters=ndim)

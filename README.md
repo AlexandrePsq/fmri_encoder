@@ -48,7 +48,17 @@ features = extract_features(
 ### Loading and processing fMRI data
 
 ```python
+from src.data import load_fmri_data, load_stmuli, fetch_masker
 
+# Fetch fmri and stimuli data
+fmri_data = load_fmri_data(fmri_url, download=True, template='')
+stimuli = load_stmuli(stimuli_url, download=True, template='')
+
+# Fetch or create a masker object that retrieve the voxels of interest in the brain
+masker = fetch_masker('masker', fmri_data, **{'detrend': False, 'standardize': False})
+
+# Process fmri data with the masker
+fmri_data = preprocess_fmri_data(fmri_data, masker)
 
 ```
 
