@@ -2,10 +2,11 @@ import os
 import logging
 import gdown, glob
 import numpy as np
+import pandas as pd
 
 import nibabel as nib
 from nilearn import image, input_data, masking
-from .utils import read_yaml, save_yaml
+from src.utils import read_yaml, save_yaml
 
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
 
@@ -25,7 +26,7 @@ def load_fmri_data(path, download=False, template=''):
         - fmri_data: list of Nifti files
     """
     if download:
-        output = '../data/fmri_data.zip'
+        output = './data/fmri_data.zip'
         gdown.download(path, output, quiet=False)
         os.system(f'unzip {output}')
 
@@ -44,7 +45,7 @@ def load_stmuli(path, download=False, template=''):
         - stimuli_data: list of csv
     """
     if download:
-        output = '../data/stimuli_data.zip'
+        output = './data/stimuli_data.zip'
         gdown.download(path, output, quiet=False)
         os.system(f'unzip {output}')
 
@@ -123,6 +124,22 @@ def preprocess_fmri_data(fmri_data, masker, add_noise_to_constant=True):
             fmri_data[index] = np.apply_along_axis(lambda x: x if not np.array_equal(x, zero) else new, 0, fmri_data[index])
     return fmri_data
 
+def preprocess_stimuli_data(stimuli_data):
+    """Load stimuli data. Preprocess it to lower cases.
+    Returns pandas dataframes.
+    Args:
+        - stimuli_data: list of str
+    Returns:
+        - stimuli_data: list of np.Array
+    """
+    stimuli_data_tmp = [pd.read_csv(f) for f in stimuli_data]
+    stimuli_data = []
+    # voxels with activation at zero at each time step generate a nan-value pearson correlation => we add a small variation to the first element
+    for stimuli in stimuli_data_tmp:
+        stimuli['Word'] = list(map(lambda x: x.lower(), stimuli['Word']))  
+        stimuli_data.append(stimuli)
+    return stimuli_data
+
 def fetch_masker(masker_path, fmri_data, **kwargs):
     """ Fetch or compute if needed a masker from fmri_data.
     Arguments:
@@ -132,7 +149,8 @@ def fetch_masker(masker_path, fmri_data, **kwargs):
     if os.path.exists(masker_path + '.nii.gz') and os.path.exists(masker_path + '.yml'):
         masker = load_masker(masker_path, **kwargs)
     else:
-        mask = masking.compute_epi_mask(fmri_data)
+        masks = [masking.compute_epi_mask(f) for f in fmri_data]
+        mask = image.math_img('img>0.5', img=image.mean_img(masks)) # take the average mask and threshold at 0.5
         masker = input_data.NiftiMasker(mask, **kwargs)
         masker.fit()
         save_masker(masker, masker_path)

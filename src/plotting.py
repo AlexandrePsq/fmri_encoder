@@ -9,6 +9,8 @@ from nilearn.glm import threshold_stats_img
 from nilearn.plotting import plot_surf_stat_map
 from nilearn.image import math_img, new_img_like
 
+from .utils import check_folder
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -172,9 +174,14 @@ def compute_surf_proj(
                                                 height_control='bonferroni',
                                                 cluster_threshold=30,
                                                 mask_img=ref_img)
-                mask_bonf = new_img_like(img, (np.abs(thresholded_zmap.get_fdata()) > 0))
-                mask = math_img('img1*img2', img1=mask_bonf, img2=ref_img)
-                result[names[index]][f'{hemi}-{view}'] = proj_surf(img, mask=mask, template=template, inflated=inflated, categorical_values=categorical_values[index], **kwargs)
+                    mask_bonf = new_img_like(img, (np.abs(thresholded_zmap.get_fdata()) > 0))
+                    mask = math_img('img1*img2', img1=mask_bonf, img2=ref_img)
+                result[names[index]][f'{hemi}-{view}'] = proj_surf(
+                    img, 
+                    mask=mask, 
+                    template=template, 
+                    inflated=inflated, 
+                    categorical_values=categorical_values[index], **kwargs)
     return result
 
 def proj_surf(img, mask=None, template=None, kind='line', inflated=False, **kwargs):
@@ -212,9 +219,9 @@ def pretty_plot(
     cmap='cold_hot',
     hemispheres=['left', 'right'], 
     views=['lateral', 'medial'], 
-    categorical_values=False, 
+    categorical_values=None, 
     inflated=False, 
-    saving_folder='../derivatives/', 
+    saving_folder='./derivatives/', 
     format_figure='pdf', 
     dpi=300, 
     plot_name='test',
@@ -245,18 +252,24 @@ def pretty_plot(
         overlapping=overlapping, 
         column_size_factor=column_size_factor
         )
+    positions = {
+        'lateral-left': 0,
+        'medial-left': 1,
+        'medial-right': 2,
+        'lateral-right': 3,
+    }
 
     for i, name in enumerate(names):
         for h, hemi in enumerate(hemispheres):
             for v, view in enumerate(views):
-                j = 2*h + v 
-                ax = axes[i][j]
+                ax = axes[i][positions[f"{view}-{hemi}"]]
                 kwargs = set_projection_params(hemi, view, cmap=cmap, 
                 inflated=inflated, threshold=1e-15, colorbar=False, symmetric_cbar=False, template=None, figure=figure, ax=ax, vmax=vmax)
 
                 surf_img = surf_imgs[name][f'{hemi}-{view}']
                 plot_surf_stat_map(stat_map=surf_img,**kwargs)
-            
+    
+    check_folder(os.path.join(saving_folder, 'figures'))        
     plt.savefig(os.path.join(saving_folder, 'figures', f'{plot_name}.{format_figure}'), format=format_figure, dpi=dpi, bbox_inches = 'tight', pad_inches = 0, )
     plt.show()
     plt.close('all')

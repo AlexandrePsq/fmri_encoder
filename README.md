@@ -5,6 +5,13 @@ Repository containing several functions/classes to
 * 2) use these features to fit fMRI brain data.
 
 
+## 0) Insstallation
+
+```shell
+!pip install -r requirements.txt
+!pip install -e .
+```
+
 ## 1) Extracting features with GloVe and GPT-2 
 
 In the folder ‘/models‘, there are two scripts to extract the features from GloVe and GPT-2.
@@ -14,12 +21,13 @@ Usecase:
 stimuli = pd.read_csv('data/word_run1.csv')
 words = stimuli['word].values
 ```
+
 ### GloVe
 
 ```python
 from models.extract_glove_features import extract_features, load_model_and_tokenizer
 
-glove_model = load_model_and_tokenizer()
+glove_model, _ = load_model_and_tokenizer()
 features_glove = extract_features(
     words, 
     glove_model, 
@@ -48,7 +56,10 @@ features_gpt2 = extract_features(
 ### Loading and processing fMRI data
 
 ```python
-from src.data import load_fmri_data, load_stmuli, fetch_masker
+from src.data import load_fmri_data, load_stmuli, fetch_masker, preprocess_fmri_data
+
+fmri_url = "https://drive.google.com/file/d/1QsxmYaI-eOG7ip0Lfe82jXJ9-Ip3Oqxy/view?usp=share_link"
+stimuli_url = "https://drive.google.com/file/d/11HT-0TH0hOerOkP3zTDzkICqRt7s9ZQZ/view?usp=share_link"
 
 # Fetch fmri and stimuli data
 fmri_data = load_fmri_data(fmri_url, download=True, template='')
@@ -82,7 +93,6 @@ encoder = Encoder(
     encoding_method=encoding_method, 
     tr=tr
     )
-
 ```
 
 ### Training encoder
@@ -90,6 +100,14 @@ encoder = Encoder(
 ```python
 
 # Extracting features
+features_glove = [
+    extract_features(
+        s['word'].values, 
+        glove_model, 
+        FEATURE_COUNT=768,
+        ) for s in stimuli
+    ] # list of pandas DataFrames
+
 features_gpt2 = [
     extract_features(
         s['word'].values, 
@@ -115,7 +133,7 @@ groups = [np.arange(start, stop, 1) for (start, stop) in start_stop]
 Y = np.vstack(fmri_data)
 
 # Computing R maps for GloVe
-features_glove = [df.values for sf in features_glove]
+features_glove = [df.values for df in features_glove]
 X_glove = np.vstack(features_glove) # shape: (#words_total * #features)
 
 encoder.fit(X_glove, Y, groups=groups, gentles=gentles, nscans=nscans)
@@ -124,7 +142,7 @@ scores_glove = encoder.eval(pred, Y)
 
 
 # Computing R maps for GPT-2
-features_gpt2 = [df.values for sf in features_gpt2]
+features_gpt2 = [df.values for df in features_gpt2]
 X_gpt2 = np.vstack(features_gpt2) # shape: (#words_total * #features)
 
 encoder.fit(X_gpt2, Y, groups=groups, gentles=gentles, nscans=nscans)

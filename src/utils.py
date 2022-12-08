@@ -105,7 +105,7 @@ def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10):
     elif name=='glm':
         logging.info(f'Loading LinearRegression...')
         return LinearRegression(fit_intercept=True)
-    elif ~isinstance(name, str):
+    elif not isinstance(name, str):
         logging.warning('The model seems to be custom.\nUsing it directly for the encoding analysis.')
         return name 
     else:
