@@ -100,7 +100,7 @@ def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10):
         return RidgeCV(
             np.logspace(alpha_min, alpha_max, nb_alphas),
             fit_intercept=True,
-            alpha_per_target=False,
+            alpha_per_target=True,
         )
     elif name=='glm':
         logging.info(f'Loading LinearRegression...')
@@ -126,3 +126,21 @@ def get_reduction_method(method, ndim=None):
         return PCA(n_components=ndim)
     elif method=='agglomerative_clustering':
         return FeatureAgglomeration(n_clusters=ndim)
+
+def get_groups(gentles):
+    """Compute the number of rows in each array
+    Args:
+        - gentles: list of np.Array
+    Returns:
+        - groups: list of np.Array
+    """
+    # We compute the number of rows in each array.
+    lengths = [len(f) for f in gentles]
+    start_stop = []
+    start = 0
+    for l in lengths:
+        stop = start + l
+        start_stop.append((start, stop))
+        start = stop
+    groups = [np.arange(start, stop, 1) for (start, stop) in start_stop]
+    return groups

@@ -28,7 +28,7 @@ def load_fmri_data(path, download=False, template=''):
     if download:
         output = './data/fmri_data.zip'
         gdown.download(path, output, quiet=False)
-        os.system(f'unzip {output}')
+        os.system(f'unzip {output} -d ./data/')
 
     fmri_data = sorted(glob.glob(f'{template}*.nii'))
 
@@ -47,7 +47,7 @@ def load_stmuli(path, download=False, template=''):
     if download:
         output = './data/stimuli_data.zip'
         gdown.download(path, output, quiet=False)
-        os.system(f'unzip {output}')
+        os.system(f'unzip {output} -d ./data/')
 
     stimuli_data = sorted(glob.glob(f'{template}*.csv'))
 

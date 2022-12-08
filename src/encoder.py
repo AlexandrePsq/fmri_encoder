@@ -12,17 +12,29 @@ logging.basicConfig(filename='loggings.log', level=logging.INFO)
 
 
 class Encoder(object):
-    def __init__(self, linearmodel, reduction_method=None, fmri_ndim=None, features_ndim=None, encoding_method='hrf', tr=2., **model_params):
+    def __init__(
+        self, 
+        linearmodel, 
+        features_reduction_method=None, 
+        fmri_reduction_method=None, 
+        fmri_ndim=None, 
+        features_ndim=None, 
+        encoding_method='hrf', 
+        tr=2., 
+        **model_params
+        ):
         """General class to fit linear encoding models including 'GLM' and 'Ridge', or other custom method.
         Args:
             - linearmodel: str (or custom function)
-            - reduction_method: str:
+            - features_reduction_method: str:
+            - fmri_reduction_method: str:
             - fmri_ndim: int
             - features_ndim: int
             - **model_params: dict
         """
         self.linearmodel = get_linearmodel(linearmodel, **model_params)
-        self.reduction_method = reduction_method
+        self.features_reduction_method = features_reduction_method
+        self.fmri_reduction_method = fmri_reduction_method
         self.fmri_ndim = fmri_ndim
         self.features_ndim = features_ndim
         self.encoding_method = encoding_method
@@ -44,7 +56,7 @@ class Encoder(object):
                 ("selector", FeatureSelector()),  # Select non nan and non-constant values
                 ("scaler", StandardScaler()),
                 ("reductor", DimensionReductor(
-                    method=self.reduction_method,
+                    method=self.fmri_reduction_method,
                     ndim=self.fmri_ndim,
                     )
                 ) # reduce dimension along column axis
@@ -55,7 +67,7 @@ class Encoder(object):
             [
                 ("scaler", StandardScaler()),
                 ("reductor", DimensionReductor(
-                    method=self.reduction_method,
+                    method=self.features_reduction_method,
                     ndim=self.features_ndim,
                     )
                 ), # reduce dimension along column axis

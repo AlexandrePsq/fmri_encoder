@@ -215,7 +215,7 @@ def pretty_plot(
     masks,
     names,
     ref_img=None,
-    vmax=0.2, 
+    vmax=[0.2], 
     cmap='cold_hot',
     hemispheres=['left', 'right'], 
     views=['lateral', 'medial'], 
@@ -229,7 +229,8 @@ def pretty_plot(
     overlapping=6,
     column_size_factor=12,
     ):
-
+    """
+    """
     surf_imgs = compute_surf_proj(
         imgs, 
         zmaps=zmaps, 
@@ -264,7 +265,7 @@ def pretty_plot(
             for v, view in enumerate(views):
                 ax = axes[i][positions[f"{view}-{hemi}"]]
                 kwargs = set_projection_params(hemi, view, cmap=cmap, 
-                inflated=inflated, threshold=1e-15, colorbar=False, symmetric_cbar=False, template=None, figure=figure, ax=ax, vmax=vmax)
+                inflated=inflated, threshold=1e-15, colorbar=False, symmetric_cbar=False, template=None, figure=figure, ax=ax, vmax=vmax[i])
 
                 surf_img = surf_imgs[name][f'{hemi}-{view}']
                 plot_surf_stat_map(stat_map=surf_img,**kwargs)
