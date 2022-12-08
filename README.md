@@ -5,11 +5,13 @@ Repository containing several functions/classes to
 * 2) use these features to fit fMRI brain data.
 
 
-## 0) Insstallation
+## 0) Installation
+
+First install the requirements.
 
 ```shell
-!pip install -r requirements.txt
-!pip install -e .
+pip install -r requirements.txt
+pip install -e .
 ```
 
 ## 1) Extracting features with GloVe and GPT-2 
