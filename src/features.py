@@ -160,6 +160,7 @@ class DimensionReductor(BaseEstimator, TransformerMixin):
             - method_args: dict
         """
         self.method = get_reduction_method(method, ndim=ndim)
+        self.ndim = ndim
     
     def fit(self, X, y=None):
         """Fit the dimension reduction operator.

@@ -1,0 +1,13 @@
+PyYAML
+gdown
+cffi==1.8.2
+asn1crypto==0.21.0
+pandas
+numpy
+scikit-learn
+scipy
+torch
+nibabel
+nilearn
+matplotlib
+-e .
