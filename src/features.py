@@ -121,7 +121,7 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
         """
         raise NotImplementedError()
     
-    def fit(self, X, y=None):
+    def fit(self, X=None, y=None):
         pass
     
     def transform(self, X):

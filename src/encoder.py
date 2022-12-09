@@ -46,8 +46,9 @@ class Encoder(object):
         Args:
             - X: np.Array (#samples * #features)
             - y: np.Array (#scans * #voxels)
+            - gentles: list of np.Array
             - groups: list of list of int (specify if X and y are concateanted runs that need to be processed separately.)
-            - nscans= list of int (number of scans in each run)
+            - nscans: list of int (number of scans in each run)
         """
 
         # Preprocessing FMRI data: voxel selection + Scaler (+ reduction)
@@ -111,7 +112,7 @@ class Encoder(object):
         """
         logging.warning(f'X should not be process. It should be the embeddings derived from the generator model: before building the design matrix.')
         logging.info(f'Processing features X...')
-        X = self.features_pipe.transform(X)
+        X = self.features_pipe.fit_transform(X)
         logging.info(f'Predicting fMRI data using processed X...')
         prediction = self.encoding_pipe.predict(X)
         return prediction
@@ -142,3 +143,30 @@ class Encoder(object):
             return self.encoding_pipe['linearmodel'].coef_
         else:
             logging.error(f'Encoding model not fitted. You must first fit it using self.fit(X, y=None')
+
+    def set_features_pipe(self, X, groups, gentles, nscans):
+        """Change the features pipe that transform the input features.
+        Args:
+            - groups: list of list of int
+            - gentles: list of np.Array
+            - nscans: list of int
+        """
+        features_pipe = Pipeline(
+            [
+                ("scaler", StandardScaler()),
+                ("reductor", DimensionReductor(
+                    method=self.features_reduction_method,
+                    ndim=self.features_ndim,
+                    )
+                ), # reduce dimension along column axis
+                ("make_design_matrix", DesignMatrixBuilder(
+                    method=self.encoding_method,
+                    tr=self.tr,
+                    groups=groups,
+                    gentles=gentles,
+                    nscans=nscans,
+                ))
+            ]
+        )
+        features_pipe.fit(X)
+        self.features_pipe = features_pipe
