@@ -7,6 +7,8 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import FeatureAgglomeration
 from sklearn.linear_model import RidgeCV, LinearRegression
 
+from src.ridge import CustomRidge
+
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
 
 
@@ -101,6 +103,7 @@ def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10):
             np.logspace(alpha_min, alpha_max, nb_alphas),
             fit_intercept=True,
             alpha_per_target=True,
+            scoring='r2',
         )
     elif name=='glm':
         logging.info(f'Loading LinearRegression...')

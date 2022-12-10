@@ -5,7 +5,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 from nilearn.glm.first_level import compute_regressor
 
-from .utils import get_reduction_method
+from src.utils import get_reduction_method
 
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
 

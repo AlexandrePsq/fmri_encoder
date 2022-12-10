@@ -78,13 +78,14 @@ class Encoder(object):
                     groups=groups,
                     gentles=gentles,
                     nscans=nscans,
-                ))
+                )),
+                ("scaler2", StandardScaler()),
             ]
         )
         # Encoding model
         encoding_pipe = Pipeline(
             [
-                ("scaler", StandardScaler()),
+                #("scaler", StandardScaler()),
                 ("linearmodel", self.linearmodel),
             ]
         )
