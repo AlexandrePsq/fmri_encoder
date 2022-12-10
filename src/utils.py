@@ -94,7 +94,7 @@ def get_possible_reduction_methods():
     return [None, 'pca', 'agglomerative_clustering']
 
 
-def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10):
+def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10, cv=5):
     """Retrieve the 
     """
     if name=='ridgecv':
@@ -104,6 +104,7 @@ def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10):
             fit_intercept=True,
             alpha_per_target=True,
             scoring='r2',
+            cv=cv
         )
     elif name=='glm':
         logging.info(f'Loading LinearRegression...')

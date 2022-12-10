@@ -21,7 +21,6 @@ class CustomRidge(BaseEstimator, TransformerMixin):
         Arguments:
             - X_train: list (of np.array)
             - Y_train: list (of np.array)
-            - alpha: float
         """
         start = 0
         alpha_list=np.logspace(self.alpha_min, self.alpha_max, self.nb_alphas)
@@ -54,24 +53,27 @@ class CustomRidge(BaseEstimator, TransformerMixin):
         output = np.stack(output, axis=0)
         data = np.stack([r['R2'] for r in output], axis=0)
         
-        voxel2alpha, alpha2voxel = self.optimize_alpha(data, alpha_list, nb_voxels=Y_test.shape[-1])
+        voxel2alpha, alpha2voxel = self.optimize_alpha(data, alpha_list)
         self.voxel2alpha = voxel2alpha
         self.alpha2voxel = alpha2voxel
 
-    def model_fit(self, X_train,Y_train, alpha):
-        """
+    def model_fit(self, X_train, Y_train, alpha):
+        """Fit a Ridge model by first by setting the alpha.
+        Args:
+            - X_train: np.Array
+            - Y_train: np.Array
+            - alpha: float
         """
         if 'Ridge' in str(self.model):
             self.model.set_params(alpha=alpha)
         self.model.fit(X_train,Y_train)
     
-    def optimize_alpha(self, data, hyperparameter, nb_voxels=None):
+    def optimize_alpha(self, data, hyperparameter):
         """ Optimize the hyperparameter of a model given a
         list of measures.
         Arguments:
             - data: np.array (3D)
             - hyperparameter: np.array (1D)
-            - nb_voxels: int
         Returns:
             - voxel2alpha: list (of int)
             - alpha2voxel: dict (of list)
@@ -83,41 +85,33 @@ class CustomRidge(BaseEstimator, TransformerMixin):
             alpha2voxel[voxel2alpha[index]].append(index)
         return voxel2alpha, alpha2voxel
 
-    def predict(self, X_train, X_test, Y_train, Y_test, R2=None, Pearson_coeff=None, alpha=None, optimizing_criteria='R2'):
+    def predict(self, X_train, X_test, Y_train):
         """ Fit a model for each voxel given the parameter optimizing a measure.
         Arguments:
             - X_train: list (of np.array)
             - Y_train: list (of np.array)
             - X_test: list (of np.array)
             - Y_test: list (of np.array)
-            - R2: np.array (3D)
-            - Pearson_coeff: np.array (3D)
-            - alpha: np.array (2D)
         The extra dimension of the last 3 arguments results from the ’aggregate_cv’
         method that was applied to the output of ’grid_search’, concatenating cv
         results over a new dimension placed at the index 0.
         Returns:
             - result: dict
         """
-        R2_ = np.zeros((Y_test.shape[1]))
-        Pearson_coeff_ = np.zeros((Y_test.shape[1]))
-        coefs = np.zeros((Y_test.shape[1], X_test.shape[1]))
-        intercepts = np.zeros((Y_test.shape[1]))
+        predictions = np.zeros((X_test.shape[0], Y_train.shape[1]))
+        coefs = np.zeros((Y_train.shape[1], X_test.shape[1]))
+        intercepts = np.zeros((Y_train.shape[1]))
         diag_matrix = np.array([])
 
         for alpha_, voxels in self.alpha2voxel.items():
             if voxels:
-                y_test_ = Y_test[:, voxels]
                 y_train_ = Y_train[:, voxels]
                 self.model_fit(X_train, y_train_, alpha_)
-                predictions = self.model.predict(X_test)
-                R2_[voxels] = self.get_R2_coeff(predictions, y_test_)
-                Pearson_coeff_[voxels] = self.get_Pearson_coeff(predictions, y_test_)
+                predictions[:, voxels] = self.model.predict(X_test)
                 coefs[voxels, :] = self.model.coef_
                 intercepts[voxels] = self.model.intercept_
-        result = {'R2': R2_,
-                    'Pearson_coeff': Pearson_coeff_,
-                    'alpha': self.voxel2alpha,
+        result = {
+                    'predictions': predictions,
                     'coef_': coefs,
                     'intercept_': intercepts,
                     'diag_matrix': diag_matrix,

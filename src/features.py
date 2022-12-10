@@ -1,6 +1,9 @@
 import logging
 import numpy as np
 
+
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from nilearn.glm.first_level import compute_regressor
@@ -8,6 +11,144 @@ from nilearn.glm.first_level import compute_regressor
 from src.utils import get_reduction_method
 
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
+
+
+class FMRIPipe(BaseEstimator, TransformerMixin):
+    def __init__(self, fmri_reduction_method=None, fmri_ndim=None):
+        """Set the preprocessing pipeline for fMRI data.
+        Args:
+            - fmri_reduction_method:str
+            - fmri_ndim: int
+        Returns:
+            - features_pipe: Pipeline
+        """
+        self.fmri_reduction_method = fmri_reduction_method
+        self.fmri_ndim = fmri_ndim
+        self.fmri_pipe = None
+    
+    def fit(self, X, y=None):
+        """
+        Args:
+            - X: np.Array
+            - y: np.Array (unused)
+            - mask: np.Array
+        """
+        self.fmri_pipe = Pipeline(
+            [
+                ("selector", FeatureSelector()),  # Select non nan and non-constant values
+                ("scaler", StandardScaler()),
+                ("reductor", DimensionReductor(
+                    method=self.fmri_reduction_method,
+                    ndim=self.fmri_ndim,
+                    )
+                ) # reduce dimension along column axis
+            ]
+        )
+        self.fmri_pipe.fit(X, y=y)
+
+    def transform(self, X):
+        """Remove the identified features learnt when calling the ‘fit‘ module.
+        Args:
+            - X: np.Array
+            - y: np.Array (unused)
+        Returns:
+            - np.Array
+        """
+        X = self.fmri_pipe.transform(X)
+        
+        return X
+
+    def fit_transform(self, X, y=None):
+        """Apply ‘.fit‘ and then ‘.transform‘
+        Args:
+            - X: np.Array
+            - y: np.Array (unused)
+        Returns:
+            - np.Array
+        """
+        self.fit(X, y=y)
+        return self.transform(X)
+
+
+class FeaturesPipe(BaseEstimator, TransformerMixin):
+    def __init__(self, features_reduction_method=None, features_ndim=None):
+        """Set the preprocessing pipeline for features.
+        Args:
+            - features_reduction_method:str
+            - features_ndim: int
+        Returns:
+            - features_pipe: Pipeline
+        """
+        self.features_reduction_method = features_reduction_method
+        self.features_ndim = features_ndim
+        self.dm = None
+        self.features_pipe = None
+
+    def fit(self, X, y=None):
+        """
+        Args:
+            - X: np.Array
+            - y: np.Array (unused)
+            - mask: np.Array
+        """
+        self.features_pipe = Pipeline(
+            [
+                ("scaler", StandardScaler()),
+                ("reductor", DimensionReductor(
+                    method=self.features_reduction_method,
+                    ndim=self.features_ndim,
+                    )
+                ), # reduce dimension along column axis
+            ]
+        )
+        self.features_pipe.fit(X, y=y)
+
+    def transform(self, X, y=None, encoding_method='hrf', tr=2, groups=None, gentles=None, nscans=None):
+        """Remove the identified features learnt when calling the ‘fit‘ module.
+        Args:
+            - X: np.Array
+            - y: np.Array (unused)
+            - encoding_method: str
+            - tr: float
+            - groups: list of int
+            - gentles: list of np.Arrays
+            - nscans: list of int
+        Returns:
+            - np.Array
+        """
+        dm = Pipeline(
+            [
+                ("make_design_matrix", DesignMatrixBuilder(
+                    method=encoding_method,
+                    tr=tr,
+                    groups=groups,
+                    gentles=gentles,
+                    nscans=nscans,
+                )),
+                ("scaler2", StandardScaler()),
+            ]
+        )
+        X = self.features_pipe.transform(X)
+        X = dm.fit_transform(X, y=y)
+        
+        return X
+
+    def fit_transform(self, X, y=None, encoding_method='hrf', tr=2, groups=None, gentles=None, nscans=None):
+        """Apply ‘.fit‘ and then ‘.transform‘
+        Args:
+            - X: np.Array
+            - y: np.Array (unused)
+            - encoding_method: str
+            - tr: float
+            - groups: list of int
+            - gentles: list of np.Arrays
+            - nscans: list of int
+        Returns:
+            - np.Array
+        """
+        self.fit(X, y=y)
+        return self.transform(X, y, encoding_method, tr, groups, gentles, nscans)
+
 
 class FeatureSelector(BaseEstimator, TransformerMixin):
     def __init__(self, fill_value=np.nan):
