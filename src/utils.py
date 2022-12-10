@@ -7,8 +7,6 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import FeatureAgglomeration
 from sklearn.linear_model import RidgeCV, LinearRegression
 
-from src.ridge import CustomRidge
-
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
 
 

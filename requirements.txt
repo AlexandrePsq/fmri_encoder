@@ -4,7 +4,7 @@ cffi==1.8.2
 asn1crypto==0.21.0
 pandas
 numpy
-scikit-learn
+scikit-learn==1.0.2
 scipy
 torch
 nibabel
