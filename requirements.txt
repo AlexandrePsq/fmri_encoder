@@ -10,4 +10,5 @@ torch
 nibabel
 nilearn
 matplotlib
+transformers
 -e .
