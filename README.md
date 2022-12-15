@@ -14,6 +14,14 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+
+## 1) Theorical steps
+
+A Neural Language model is used to generate embeddings for each token of a given kind of stimuli (text, image, video). Here we porcess textual information.
+
+Then a linear encoding model (the encoder) is used to fit the model derived representations to fMRI brain data.
+
+
 ## 1) Extracting features with GloVe and GPT-2 
 
 In the folder ‘/models‘, there are two scripts to extract the features from GloVe and GPT-2.
@@ -75,82 +83,75 @@ fmri_data = preprocess_fmri_data(fmri_data, masker)
 ```
 
 
-### Creating the encoding pipeline
+## Encoder.py
+
+General python Class to fit linear encoding models.
+
+Example:
+We first instantiate all variables and object classes.
+We then load, mask and process the fMRI data.
 
 ```python
+from src.utils import get_groups, preprocess_fmri_data
+from src.utils import check_folder, fetch_masker
 from src.encoder import Encoder
+from src.features import FMRIPipe, FeaturesPipe
 
 fmri_ndim = None
-features_ndim = 50
-reduction_method = 'pca'
-tr = 1.49
+features_ndim = None
+features_reduction_method = None #'pca'
+fmri_reduction_method = None
+tr = ...
 encoding_method = 'hrf'
 linearmodel = 'ridgecv'
 
-encoder = Encoder(
-    linearmodel=linearmodel, 
-    reduction_method=reduction_method, 
-    fmri_ndim=fmri_ndim, 
-    features_ndim=features_ndim, 
-    encoding_method=encoding_method, 
-    tr=tr
+check_folder('./derivatives')
+fmri_data = ... # list of 4D nifti images paths
+gentles = ... # list of the offsets of the stimuli data
+nscans = ... # number of scnas per session
+features = ... # list of np array
+
+# Instantiating the encoding model
+encoder = Encoder(linearmodel=linearmodel)
+# Instantiating the fMRI data processing pipeline
+fmri_pipe = FMRIPipe(
+    fmri_reduction_method=fmri_reduction_method, 
+    fmri_ndim=fmri_ndim
     )
+# Instantiating the features processing pipeline
+features_pipe = FeaturesPipe(
+        features_reduction_method=features_reduction_method, 
+        features_ndim=features_ndim
+        )
+
+# Fetch or create a masker object that retrieve the voxels of interest in the brain
+masker = fetch_masker('./derivatives/masker', fmri_data, **{'detrend': True, 'standardize': True})
+
+# Process fmri data with the masker
+fmri_data = preprocess_fmri_data(fmri_data, masker)
+fmri_data = np.vstack(fmri_data)
+features = np.vstack(features)
 ```
 
-### Training encoder
+We then fit the encoding model (with cross-validation for the L2 regularization) but no outside cross-validation because we want to retrieve the trained weights for later decoding.
 
 ```python
-
-# Extracting features
-features_glove = [
-    extract_features(
-        s['word'].values, 
-        glove_model, 
-        FEATURE_COUNT=768,
-        ) for s in stimuli
-    ] # list of pandas DataFrames
-
-features_gpt2 = [
-    extract_features(
-        s['word'].values, 
-        gpt2_model, 
-        tokenizer,
-        FEATURE_COUNT=768,
-        NUM_HIDDEN_LAYERS=12,
-        ) for s in stimuli
-    ] # list of pandas DataFrames
-
-lengths = [len(df) for df in features_gpt2]
-
-start_stop = []
-start = 0
-for l in lengths:
-    stop = start + l
-    start_stop.append((start, stop))
-    start = stop
-
-nscans = [f.shape[0] for f in fmri_data]
-gentles = [s['offsets'].values for s in stimuli]
-groups = [np.arange(start, stop, 1) for (start, stop) in start_stop]
-Y = np.vstack(fmri_data)
-
-# Computing R maps for GloVe
-features_glove = [df.values for df in features_glove]
-X_glove = np.vstack(features_glove) # shape: (#words_total * #features)
-
-encoder.fit(X_glove, Y, groups=groups, gentles=gentles, nscans=nscans)
-pred = encoder.predict(X_glove)
-scores_glove = encoder.eval(pred, Y)
-
-
-# Computing R maps for GPT-2
-features_gpt2 = [df.values for df in features_gpt2]
-X_gpt2 = np.vstack(features_gpt2) # shape: (#words_total * #features)
-
-encoder.fit(X_gpt2, Y, groups=groups, gentles=gentles, nscans=nscans)
-pred = encoder.predict(X_gpt2)
-scores_gpt2 = encoder.eval(pred, Y)
+## Fitting the model with GloVe
+# Processing train fMRI data
+fmri_data = fmri_pipe.fit_transform(fmri_data)
+# Processing Features
+features = features_pipe.fit_transform(
+    features, 
+    encoding_method=encoding_method, 
+    tr=tr, 
+    groups=get_groups(gentles), 
+    gentles=gentles, 
+    nscans=nscans)
+# Training the encoder
+encoder.fit(features, fmri_data)
 ```
+The fitted encoder is saved.
+
 
 
 ### Visualizing results

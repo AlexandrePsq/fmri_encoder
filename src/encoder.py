@@ -1,4 +1,6 @@
+import os
 import logging
+import joblib
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -47,6 +49,10 @@ class Encoder(object):
         # Saving pipes
         self.encoding_pipe = encoding_pipe
         self.is_fitted = True
+        joblib.dump(
+            self.encoding_pipe,
+            os.path.join(self.saving_folder, "encoding_pipe.joblib"),
+        )
         
     def predict(self, X):
         """Use the fitted encoding model to predict fmri data from features X.

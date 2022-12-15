@@ -93,7 +93,7 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
         """
         self.features_pipe = Pipeline(
             [
-                ("scaler", StandardScaler()),
+                ("scaler", StandardScaler()), # may be remove it form the pipe to fit it each time (ask Bertrand)
                 ("reductor", DimensionReductor(
                     method=self.features_reduction_method,
                     ndim=self.features_ndim,
