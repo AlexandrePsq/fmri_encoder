@@ -1,3 +1,4 @@
+import joblib
 import logging
 import numpy as np
 
@@ -14,17 +15,19 @@ logging.basicConfig(filename='loggings.log', level=logging.INFO)
 
 
 class FMRIPipe(BaseEstimator, TransformerMixin):
-    def __init__(self, fmri_reduction_method=None, fmri_ndim=None):
+    def __init__(self, fmri_reduction_method=None, fmri_ndim=None, saving_folder='./derivatives'):
         """Set the preprocessing pipeline for fMRI data.
         Args:
             - fmri_reduction_method:str
             - fmri_ndim: int
+            - saving_folder: str
         Returns:
             - features_pipe: Pipeline
         """
         self.fmri_reduction_method = fmri_reduction_method
         self.fmri_ndim = fmri_ndim
         self.fmri_pipe = None
+        self.saving_folder = saving_folder
     
     def fit(self, X, y=None):
         """
@@ -45,6 +48,10 @@ class FMRIPipe(BaseEstimator, TransformerMixin):
             ]
         )
         self.fmri_pipe.fit(X, y=y)
+        joblib.dump(
+            self.fmri_pipe,
+            os.path.join(self.saving_folder, "fmri_pipe.joblib"),
+        )
 
     def transform(self, X):
         """Remove the identified features learnt when calling the ‘fit‘ module.
@@ -71,11 +78,12 @@ class FMRIPipe(BaseEstimator, TransformerMixin):
 
 
 class FeaturesPipe(BaseEstimator, TransformerMixin):
-    def __init__(self, features_reduction_method=None, features_ndim=None):
+    def __init__(self, features_reduction_method=None, features_ndim=None, saving_folder='./derivatives'):
         """Set the preprocessing pipeline for features.
         Args:
             - features_reduction_method:str
             - features_ndim: int
+            - saving_folder: str
         Returns:
             - features_pipe: Pipeline
         """
@@ -83,6 +91,7 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
         self.features_ndim = features_ndim
         self.dm = None
         self.features_pipe = None
+        self.saving_folder = saving_folder
 
     def fit(self, X, y=None):
         """
@@ -102,6 +111,10 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
             ]
         )
         self.features_pipe.fit(X, y=y)
+        joblib.dump(
+            self.features_pipe,
+            os.path.join(self.saving_folder, "features_pipe.joblib"),
+        )
 
     def transform(self, X, y=None, encoding_method='hrf', tr=2, groups=None, gentles=None, nscans=None):
         """Remove the identified features learnt when calling the ‘fit‘ module.
