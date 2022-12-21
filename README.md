@@ -108,7 +108,7 @@ linearmodel = 'ridgecv'
 check_folder('./derivatives')
 fmri_data = ... # list of 4D nifti images paths
 gentles = ... # list of the offsets of the stimuli data
-nscans = ... # number of scnas per session
+nscans = ... # number of scans per session
 features = ... # list of np array
 
 # Instantiating the encoding model
@@ -127,10 +127,26 @@ features_pipe = FeaturesPipe(
 # Fetch or create a masker object that retrieve the voxels of interest in the brain
 masker = fetch_masker('./derivatives/masker', fmri_data, **{'detrend': True, 'standardize': True})
 
+# Splitting data into train and test data
+nb_run_test = 1
+fmri_data_train = fmri_data[:-nb_run_test]
+fmri_data_test = fmri_data[-nb_run_test:]
+features_train = features[:-nb_run_test]
+features_test = features[-nb_run_test:]
+
+gentles_train = gentles[:-nb_run_test]
+gentles_test = gentles[-nb_run_test:]
+nscans_train = nscans[:-nb_run_test]
+nscans_test = nscans[-nb_run_test:]
+
 # Process fmri data with the masker
-fmri_data = preprocess_fmri_data(fmri_data, masker)
-fmri_data = np.vstack(fmri_data)
-features = np.vstack(features)
+fmri_data_train = preprocess_fmri_data_train(fmri_data_train, masker)
+fmri_data_train = np.vstack(fmri_data_train)
+features_train = np.vstack(features_train)
+
+fmri_data_test = preprocess_fmri_data_test(fmri_data_test, masker)
+fmri_data_test = np.vstack(fmri_data_test)
+features_test = np.vstack(features_test)
 ```
 
 We then fit the encoding model (with cross-validation for the L2 regularization) but no outside cross-validation because we want to retrieve the trained weights for later decoding.
@@ -138,17 +154,27 @@ We then fit the encoding model (with cross-validation for the L2 regularization)
 ```python
 ## Fitting the model with GloVe
 # Processing train fMRI data
-fmri_data = fmri_pipe.fit_transform(fmri_data)
+fmri_data_train = fmri_pipe.fit_transform(fmri_data_train)
+fmri_data_test = fmri_pipe.fit_transform(fmri_data_test)
 # Processing Features
-features = features_pipe.fit_transform(
+features_train = features_pipe.fit_transform(
+    features_train, 
+    encoding_method=encoding_method, 
+    tr=tr, 
+    groups=get_groups(gentles_train), 
+    gentles=gentles_train, 
+    nscans=nscans_train)
+features_test = features_pipe.fit_transform(
     features, 
     encoding_method=encoding_method, 
     tr=tr, 
-    groups=get_groups(gentles), 
-    gentles=gentles, 
-    nscans=nscans)
+    groups=get_groups(gentles_test), 
+    gentles=gentles_test, 
+    nscans=nscans_test)
 # Training the encoder
-encoder.fit(features, fmri_data)
+encoder.fit(features_train, fmri_data_train)
+predictions = encoder.predict(features_test)
+scores = encoder.eval(predictions, fmri_data_test)
 ```
 The fitted encoder is saved.
 
@@ -159,10 +185,10 @@ The fitted encoder is saved.
 ```python
 from src.plotting import pretty_plot
 
-imgs = [masker.inverse_transform(scores_glove), masker.inverse_transform(scores_gpt2)]
+imgs = [masker.inverse_transform(scores)]
 zmaps = None
 masks = None
-names = ['GloVe', 'GPT-2']
+names = ['My_models']
 
 pretty_plot(
     imgs, 

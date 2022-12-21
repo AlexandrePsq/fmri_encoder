@@ -19,8 +19,8 @@ class CustomRidge(BaseEstimator, TransformerMixin):
     def fit(self, X, y):
         """ Fit the model for a given set of runs.
         Arguments:
-            - X_train: list (of np.array)
-            - Y_train: list (of np.array)
+            - X: list (of np.array)
+            - Y: list (of np.array)
         """
         start = 0
         alpha_list=np.logspace(self.alpha_min, self.alpha_max, self.nb_alphas)
