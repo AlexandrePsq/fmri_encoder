@@ -186,3 +186,18 @@ pretty_plot(
     )
 
 ```
+
+### Citation
+
+Please cite this work as
+
+```python
+@software{Pasquiou_encoding_2022,
+  author = {Pasquiou Alexandre},
+  doi = {},
+  month = {12},
+  title = {{Encoding Pipeline}},
+  url = {https://github.com/AlexandrePsq/main_tutorial},
+  year = {2022}
+}
+```
