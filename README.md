@@ -189,7 +189,7 @@ pretty_plot(
 
 ### Citation
 
-Please cite this work as
+To cite this work, use:
 
 ```python
 @software{Pasquiou_encoding_2022,
