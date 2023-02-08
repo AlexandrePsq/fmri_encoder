@@ -53,14 +53,15 @@ nfeatures = 768  # (use to define random data)  # you don't have to specify it i
 sample_frequency = 0.2 # (idem)                 # you don't have to specify it if you have real features
 fmri_data = [np.random.rand((nscans, nvoxels))] # list of 4D nifti images paths
 gentles = [np.linspace(                         # you should load the real onsets/offsets
-    0,                                          # here we are suing fake data
+    0,                                          # here we are using fake data
     sample_frequency*nsamples, 
     num=nsamples
-    )]                                          # list of the offset arrays for each fMRI data file
-features = [np.random.rand((nsamples, nfeatures))] # list of np array
+    )]                                              # list of the offset arrays for each fMRI data file
+features = [np.random.rand((nsamples, nfeatures))]  # list of np array
 
 # Instantiating the encoding model
 encoder = Encoder(linearmodel=linearmodel, saving_folder=output_folder)
+
 # Instantiating the fMRI data processing pipeline
 fmri_pipe = FMRIPipe(
     fmri_reduction_method=fmri_reduction_method, 
@@ -94,18 +95,33 @@ features = features_pipe.fit_transform(
 encoder.fit(features_train, fmri_data_train)
 
 # Generating fake testing data
-nscans = [300]                                  # Number of scans per session
+nscans_test = [300]                             # Number of scans per session
 nvoxels = 26000  # (use to define random data)  # you don't have to specify it if you have real fMRI data
 nsamples = 1750  # (use to define random data)  # you don't have to specify it if you have real features
 nfeatures = 768  # (use to define random data)  # you don't have to specify it if you have real features
 sample_frequency = 0.2 # (idem)                 # you don't have to specify it if you have real features
-fmri_data = [np.random.rand((nscans, nvoxels))] # list of 4D nifti images paths
-gentles = [np.linspace(                         # you should load the real onsets/offsets
+fmri_data_test = [np.random.rand((nscans, nvoxels))] # list of 4D nifti images paths
+gentles_test = [np.linspace(                    # you should load the real onsets/offsets
     0,                                          # here we are suing fake data
     sample_frequency*nsamples, 
     num=nsamples
-    )]                                          # list of the offset arrays for each fMRI data file
-features = [np.random.rand((nsamples, nfeatures))] # list of np array
+    )]                                                  # list of the offset arrays for each fMRI data file
+features_test = [np.random.rand((nsamples, nfeatures))] # list of np array
+
+# Preprocess fmri data with the masker
+fmri_data_test = preprocess_fmri_data(fmri_data_test, masker)
+fmri_data_test = np.vstack(fmri_data_test)
+fmri_data_test = fmri_pipe.fit_transform(fmri_data_test)
+
+# Preprocess features
+features_test = np.vstack(features_test)
+features_test = features_pipe.fit_transform(
+    features_test,
+    encoding_method=encoding_method,
+    tr=tr,
+    groups=get_groups(gentles_test),
+    gentles=gentles_test,
+    nscans=nscans_test)
 
 # Testing on a test set
 predictions = encoder.predict(features_test)
@@ -123,7 +139,7 @@ vmax = np.max(scores)
 imgs = [masker.inverse_transform(scores)]
 zmaps = None
 masks = None
-names = ['My_models']
+names = ['My_first_encoding_model']
 
 pretty_plot(
     imgs, 
