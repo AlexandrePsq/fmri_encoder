@@ -218,12 +218,12 @@ pretty_plot(
 To cite this work, use:
 
 ```python
-@software{Pasquiou_encoding_2022,
+@software{Pasquiou_encoding_models_2022,
   author = {Pasquiou Alexandre},
   doi = {},
   month = {12},
-  title = {{Encoding Pipeline}},
-  url = {https://github.com/AlexandrePsq/main_tutorial},
+  title = {{fMRI Linear Encoding Models}},
+  url = {https://github.com/AlexandrePsq/fmri_encoder},
   year = {2022}
 }
 ```
