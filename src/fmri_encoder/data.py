@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 import nibabel as nib
-from nilearn import image, input_data, masking
+from nilearn import image, maskers, masking
 from fmri_encoder.utils import read_yaml, save_yaml
 
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
@@ -68,7 +68,7 @@ def load_masker(path, resample_to_img_=None, intersect_with_img=False, **kwargs)
         mask_img = image.resample_to_img(mask_img, resample_to_img_, interpolation='nearest')
         if intersect_with_img:
             mask_img = intersect_binary(mask_img, resample_to_img_)
-    masker = input_data.NiftiMasker(mask_img)
+    masker = maskers.NiftiMasker(mask_img)
     masker.set_params(**params)
     if kwargs:
         masker.set_params(**kwargs)
@@ -151,7 +151,7 @@ def fetch_masker(masker_path, fmri_data, **kwargs):
     else:
         masks = [masking.compute_epi_mask(f) for f in fmri_data]
         mask = image.math_img('img>0.5', img=image.mean_img(masks)) # take the average mask and threshold at 0.5
-        masker = input_data.NiftiMasker(mask, **kwargs)
+        masker = maskers.NiftiMasker(mask, **kwargs)
         masker.fit()
         save_masker(masker, masker_path)
     return masker

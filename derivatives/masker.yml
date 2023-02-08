@@ -1,0 +1,10 @@
+detrend: true
+dtype: null
+high_pass: null
+low_pass: null
+mask_strategy: background
+memory_level: 1
+smoothing_fwhm: null
+standardize: true
+t_r: null
+verbose: 0

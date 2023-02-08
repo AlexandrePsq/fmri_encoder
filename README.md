@@ -10,109 +10,57 @@ Repository containing several functions/classes to
 First install the requirements.
 
 ```shell
+pip install fmri_encoder
+cd fmri_encoder
 pip install -r requirements.txt
-pip install -e .
 ```
 
+## Usage and examples
 
-## 1) Theorical steps
-
-A Neural Language model is used to generate embeddings for each token of a given kind of stimuli (text, image, video). Here we porcess textual information.
-
-Then a linear encoding model (the encoder) is used to fit the model derived representations to fMRI brain data.
-
-
-## 1) Extracting features with GloVe and GPT-2 
-
-In the folder ‘/models‘, there are two scripts to extract the features from GloVe and GPT-2.
-Usecase:
-
-```python
-stimuli = pd.read_csv('data/word_run1.csv')
-words = stimuli['word].values
-```
-
-### GloVe
-
-```python
-from models.extract_glove_features import extract_features, load_model_and_tokenizer
-
-glove_model, _ = load_model_and_tokenizer()
-features_glove = extract_features(
-    words, 
-    glove_model, 
-    FEATURE_COUNT=300,
-    )
-```
-
-
-### GPT-2
-
-```python
-from models.extract_gpt2_features import extract_features, load_model_and_tokenizer
-
-gpt2_model, tokenizer = load_model_and_tokenizer('gpt2')
-features_gpt2 = extract_features(
-    words, 
-    gpt2_model, 
-    tokenizer,
-    FEATURE_COUNT=768,
-    NUM_HIDDEN_LAYERS=12,
-    )
-```
-
-## 2) Creating an Encoding Pipeline to predict fMRI brain data using modelderived features
-
-### Loading and processing fMRI data
-
-```python
-from src.data import load_fmri_data, load_stmuli, fetch_masker, preprocess_fmri_data
-
-fmri_url = "https://drive.google.com/file/d/1QsxmYaI-eOG7ip0Lfe82jXJ9-Ip3Oqxy/view?usp=share_link"
-stimuli_url = "https://drive.google.com/file/d/11HT-0TH0hOerOkP3zTDzkICqRt7s9ZQZ/view?usp=share_link"
-
-# Fetch fmri and stimuli data
-fmri_data = load_fmri_data(fmri_url, download=True, template='')
-stimuli = load_stmuli(stimuli_url, download=True, template='')
-
-# Fetch or create a masker object that retrieve the voxels of interest in the brain
-masker = fetch_masker('masker', fmri_data, **{'detrend': False, 'standardize': False})
-
-# Process fmri data with the masker
-fmri_data = preprocess_fmri_data(fmri_data, masker)
-```
-
-
-## Encoder.py
-
-General python Class to fit linear encoding models.
+### 1) Fitting a matrix of features to a matrix of fMRI data 
 
 Example:
 We first instantiate all variables and object classes.
 We then load, mask and process the fMRI data.
 
 ```python
-from src.utils import get_groups, preprocess_fmri_data
-from src.utils import check_folder, fetch_masker
-from src.encoder import Encoder
-from src.features import FMRIPipe, FeaturesPipe
+from fmri_encoder.utils import (
+    get_groups, 
+    check_folder
+)
+from fmri_encoder.data import (
+    preprocess_fmri_data,
+    fetch_masker
+)
+from fmri_encoder.encoder import Encoder
+from fmri_encoder.features import FMRIPipe, FeaturesPipe
 
-fmri_ndim = None
-features_ndim = None
-features_reduction_method = None #'pca'
-fmri_reduction_method = None
-tr = ...
-encoding_method = 'hrf'
+fmri_ndim = None                    
+features_ndim = None                
+features_reduction_method = None    # We do not reduce the number of features of X
+fmri_reduction_method = None        # We do not reduce the number of voxels of Y
+tr = 2                              # Set your TR here
+encoding_method = 'hrf'             # Using the standard haemodynamic function
 linearmodel = 'ridgecv'
 
-check_folder('./derivatives')
-fmri_data = ... # list of 4D nifti images paths
-gentles = ... # list of the offsets of the stimuli data
-nscans = ... # number of scans per session
-features = ... # list of np array
+# Generating fake training data
+output_folder = './derivatives'                 # Where outputs will be saved
+check_folder(output_folder)                     # Creating it
+nscans = [282]                                  # Number of scans per session
+nvoxels = 26000  # (use to define random data)  # you don't have to specify it if you have real fMRI data
+nsamples = 2000  # (use to define random data)  # you don't have to specify it if you have real features
+nfeatures = 768  # (use to define random data)  # you don't have to specify it if you have real features
+sample_frequency = 0.2 # (idem)                 # you don't have to specify it if you have real features
+fmri_data = [np.random.rand((nscans, nvoxels))] # list of 4D nifti images paths
+gentles = [np.linspace(                         # you should load the real onsets/offsets
+    0,                                          # here we are suing fake data
+    sample_frequency*nsamples, 
+    num=nsamples
+    )]                                          # list of the offset arrays for each fMRI data file
+features = [np.random.rand((nsamples, nfeatures))] # list of np array
 
 # Instantiating the encoding model
-encoder = Encoder(linearmodel=linearmodel)
+encoder = Encoder(linearmodel=linearmodel, saving_folder=output_folder)
 # Instantiating the fMRI data processing pipeline
 fmri_pipe = FMRIPipe(
     fmri_reduction_method=fmri_reduction_method, 
@@ -125,66 +73,53 @@ features_pipe = FeaturesPipe(
         )
 
 # Fetch or create a masker object that retrieve the voxels of interest in the brain
-masker = fetch_masker('./derivatives/masker', fmri_data, **{'detrend': True, 'standardize': True})
+masker = fetch_masker(os.path.join(output_folder, 'masker'), fmri_data, **{'detrend': True, 'standardize': True})
 
-# Splitting data into train and test data
-nb_run_test = 1
-fmri_data_train = fmri_data[:-nb_run_test]
-fmri_data_test = fmri_data[-nb_run_test:]
-features_train = features[:-nb_run_test]
-features_test = features[-nb_run_test:]
+# Preprocess fmri data with the masker
+fmri_data = preprocess_fmri_data(fmri_data, masker)
+fmri_data = np.vstack(fmri_data)
+fmri_data = fmri_pipe.fit_transform(fmri_data)
 
-gentles_train = gentles[:-nb_run_test]
-gentles_test = gentles[-nb_run_test:]
-nscans_train = nscans[:-nb_run_test]
-nscans_test = nscans[-nb_run_test:]
+# Preprocess features
+features = np.vstack(features)
+features = features_pipe.fit_transform(
+    features,
+    encoding_method=encoding_method,
+    tr=tr,
+    groups=get_groups(gentles),
+    gentles=gentles,
+    nscans=nscans)
 
-# Process fmri data with the masker
-fmri_data_train = preprocess_fmri_data_train(fmri_data_train, masker)
-fmri_data_train = np.vstack(fmri_data_train)
-features_train = np.vstack(features_train)
-
-fmri_data_test = preprocess_fmri_data_test(fmri_data_test, masker)
-fmri_data_test = np.vstack(fmri_data_test)
-features_test = np.vstack(features_test)
-```
-
-We then fit the encoding model (with cross-validation for the L2 regularization) but no outside cross-validation because we want to retrieve the trained weights for later decoding.
-
-```python
-## Fitting the model with GloVe
-# Processing train fMRI data
-fmri_data_train = fmri_pipe.fit_transform(fmri_data_train)
-fmri_data_test = fmri_pipe.fit_transform(fmri_data_test)
-# Processing Features
-features_train = features_pipe.fit_transform(
-    features_train, 
-    encoding_method=encoding_method, 
-    tr=tr, 
-    groups=get_groups(gentles_train), 
-    gentles=gentles_train, 
-    nscans=nscans_train)
-features_test = features_pipe.fit_transform(
-    features, 
-    encoding_method=encoding_method, 
-    tr=tr, 
-    groups=get_groups(gentles_test), 
-    gentles=gentles_test, 
-    nscans=nscans_test)
 # Training the encoder
 encoder.fit(features_train, fmri_data_train)
+
+# Generating fake testing data
+nscans = [300]                                  # Number of scans per session
+nvoxels = 26000  # (use to define random data)  # you don't have to specify it if you have real fMRI data
+nsamples = 1750  # (use to define random data)  # you don't have to specify it if you have real features
+nfeatures = 768  # (use to define random data)  # you don't have to specify it if you have real features
+sample_frequency = 0.2 # (idem)                 # you don't have to specify it if you have real features
+fmri_data = [np.random.rand((nscans, nvoxels))] # list of 4D nifti images paths
+gentles = [np.linspace(                         # you should load the real onsets/offsets
+    0,                                          # here we are suing fake data
+    sample_frequency*nsamples, 
+    num=nsamples
+    )]                                          # list of the offset arrays for each fMRI data file
+features = [np.random.rand((nsamples, nfeatures))] # list of np array
+
+# Testing on a test set
 predictions = encoder.predict(features_test)
 scores = encoder.eval(predictions, fmri_data_test)
 ```
 The fitted encoder is saved.
 
 
-
-### Visualizing results
+### 2) Visualizing results
 
 ```python
-from src.plotting import pretty_plot
+from fmri_encoder.plotting import pretty_plot
 
+vmax = np.max(scores)
 imgs = [masker.inverse_transform(scores)]
 zmaps = None
 masks = None
@@ -196,19 +131,19 @@ pretty_plot(
     masks,
     names,
     ref_img=None,
-    vmax=0.2, 
+    vmax=[vmax], 
     cmap='cold_hot',
     hemispheres=['left', 'right'], 
     views=['lateral', 'medial'], 
-    categorical_values=False, 
+    categorical_values=None, 
     inflated=False, 
     saving_folder='../derivatives/', 
     format_figure='pdf', 
     dpi=300, 
     plot_name='test',
-    row_size_factor=6,
-    overlapping=6,
-    column_size_factor=12,
+    row_size_factor=8,          # you can play with these arguments to modify the shape of the brain vetically
+    column_size_factor=12,      # you can play with these arguments to modify the shape of the brain horizontally
+    overlapping=4,
     )
 
 ```

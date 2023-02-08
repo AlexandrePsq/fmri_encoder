@@ -6,7 +6,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from fmri_encoder.metrics import get_metric
-from fmri_encoder.utils import get_linearmodel
+from fmri_encoder.utils import get_linearmodel, check_folder
 
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
 
@@ -14,7 +14,8 @@ logging.basicConfig(filename='loggings.log', level=logging.INFO)
 class Encoder(object):
     def __init__(
         self, 
-        linearmodel, 
+        linearmodel,
+        saving_folder='./tmp',
         **model_params
         ):
         """General class to fit linear encoding models including 'GLM' and 'Ridge', or other custom method.
@@ -24,6 +25,8 @@ class Encoder(object):
         """
         self.linearmodel = get_linearmodel(linearmodel, **model_params)
         self.is_fitted = False
+        check_folder(saving_folder)
+        self.saving_folder = saving_folder
 
     def fit(self, X, y):
         """Fit the encoding model using Features X and fmri data y.

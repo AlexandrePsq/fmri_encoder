@@ -4,7 +4,7 @@ gdown
 #asn1crypto==0.21.0
 pandas
 numpy
-scikit-learn#==1.0.2
+scikit-learn #==1.0.2
 scipy
 torch
 nibabel
