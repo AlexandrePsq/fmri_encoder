@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-
+import nltk
+from nltk.tokenize import word_tokenize
+nltk.download('punkt') # Download package punkt if you don't have
 
 
 def load_model_and_tokenizer(trained_model='../data/glove.6B.300d.txt'):
@@ -37,7 +39,7 @@ def init_embeddings(trained_model='../data/glove.6B.300d.txt'):
         for line in f: 
             values = line.split() 
             word = values[0] 
-            vector = np.asarray(values[1:], "float32") 
+            vector = np.asarray(values[1:], "float32")
             model[word] = vector 
     return model
 
@@ -150,10 +152,20 @@ def extract_features(
     features = []
     columns = ['embedding-{}'.format(i) for i in range(1, 1 + FEATURE_COUNT)]
     features = []
+    error_keys = []
     for item in tqdm(words):
-        if item not in model.keys():
-            item = '<unk>'
-        features.append(model[item])
+        try:   # Check if the word can be projected
+            features.append(model[item])
+        except KeyError:  
+            split_word = word_tokenize(item)
+            print('Trying to split... ', item, '\t-> ', ' + '.join(split_word))
+            try:
+                word_vector = np.sum([model[w] for w in split_word], axis=0)
+                features.append(word_vector)
+            except KeyError:
+                error_keys.append(item) # Ignored words
 
+    print('------------------Error keys(cannot be embedded)-----------------')
+    print(set(error_keys))
     features = pd.DataFrame(np.vstack(features), columns=columns)
     return features

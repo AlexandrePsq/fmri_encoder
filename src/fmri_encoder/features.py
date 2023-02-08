@@ -1,3 +1,4 @@
+import os
 import joblib
 import logging
 import numpy as np
@@ -9,7 +10,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 from nilearn.glm.first_level import compute_regressor
 
-from src.utils import get_reduction_method
+from fmri_encoder.utils import get_reduction_method
 
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
 

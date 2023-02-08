@@ -6,7 +6,7 @@ import pandas as pd
 
 import nibabel as nib
 from nilearn import image, input_data, masking
-from src.utils import read_yaml, save_yaml
+from fmri_encoder.utils import read_yaml, save_yaml
 
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
 

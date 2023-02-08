@@ -5,8 +5,8 @@ import joblib
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from .metrics import get_metric
-from .utils import get_linearmodel
+from fmri_encoder.metrics import get_metric
+from fmri_encoder.utils import get_linearmodel
 
 logging.basicConfig(filename='loggings.log', level=logging.INFO)
 

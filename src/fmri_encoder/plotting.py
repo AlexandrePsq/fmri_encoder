@@ -9,7 +9,7 @@ from nilearn.glm import threshold_stats_img
 from nilearn.plotting import plot_surf_stat_map
 from nilearn.image import math_img, new_img_like
 
-from .utils import check_folder
+from fmri_encoder.utils import check_folder
 
 import warnings
 warnings.filterwarnings("ignore")
