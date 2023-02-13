@@ -189,7 +189,7 @@ class FMRICleaner(BaseEstimator, TransformerMixin):
             - np.Array
         """
         X[self.nan] = self.fill_nan_value
-        X[self.cst, 0] = np.random.random(X[self.cst, 0].shape)/1000
+        X[self.cst, 0] = np.random.random(*X[self.cst, 0].shape)/1000
         return X
 
     def fit_transform(self, X, y=None):

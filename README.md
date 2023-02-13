@@ -20,7 +20,9 @@ We first instantiate all variables and object classes.
 We then load, mask and process the fMRI data.
 
 ```python
+import os
 import numpy as np
+from nibabel.testing import data_path
 from fmri_encoder.utils import (
     get_groups, 
     check_folder
@@ -40,12 +42,11 @@ linearmodel = 'ridgecv'
 # Generating fake training data
 output_folder = './derivatives'                 # Where outputs will be saved
 check_folder(output_folder)                     # Creating it
-nscans = [282]                                  # Number of scans per session
-nvoxels = 26000  # (use to define random data)  # you don't have to specify it if you have real fMRI data
 nsamples = 2000  # (use to define random data)  # you don't have to specify it if you have real features
 nfeatures = 768  # (use to define random data)  # you don't have to specify it if you have real features
 sample_frequency = 0.2 # (idem)                 # you don't have to specify it if you have real features
-fmri_data = [np.random.rand(nscan, nvoxels) for nscan in nscans] # list of 4D nifti images paths
+example_fmri_data = os.path.join(data_path, 'example4d.nii.gz')
+fmri_data = [example_fmri_data]                 # list of 4D nifti images paths
 gentles = [np.linspace(                         # you should load the real onsets/offsets
     0,                                          # here we are using fake data
     sample_frequency*nsamples, 
@@ -72,8 +73,10 @@ masker = fetch_masker(os.path.join(output_folder, 'masker'), fmri_data, **{'detr
 
 # Preprocess fmri data with the masker
 fmri_data = [masker.transform(f) for f in fmri_data]
+nscans = [f.shape[0] for f in fmri_data]                                  # Number of scans per session
 fmri_data = np.vstack(fmri_data)
 fmri_data = fmri_pipe.fit_transform(fmri_data)
+nvoxels = fmri_data.shape[-1]  # (use to define random data)  # you don't have to specify it if you have real fMRI data
 
 # Preprocess features
 features = np.vstack(features)
