@@ -150,7 +150,7 @@ pretty_plot(
     format_figure='pdf', 
     dpi=300, 
     plot_name='test',
-    row_size_factor=8,          # you can play with these arguments to modify the shape of the brain vetically
+    row_size_factor=8,          # you can play with these arguments to modify the shape of the brain vertically
     column_size_factor=12,      # you can play with these arguments to modify the shape of the brain horizontally
     overlapping=4,
     )

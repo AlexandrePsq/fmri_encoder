@@ -17,7 +17,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=["nilearn", "sklearn", "nibabel", "torch", "scipy", "PyYAML", "matplotlib", "tqdm"],
+    install_requires=["nilearn", "nibabel", "torch", "scipy", "PyYAML", "matplotlib", "tqdm"],
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.6",
