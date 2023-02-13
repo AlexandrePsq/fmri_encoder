@@ -45,13 +45,13 @@ nvoxels = 26000  # (use to define random data)  # you don't have to specify it i
 nsamples = 2000  # (use to define random data)  # you don't have to specify it if you have real features
 nfeatures = 768  # (use to define random data)  # you don't have to specify it if you have real features
 sample_frequency = 0.2 # (idem)                 # you don't have to specify it if you have real features
-fmri_data = [np.random.rand((nscan, nvoxels)) for nscan in nscans] # list of 4D nifti images paths
+fmri_data = [np.random.rand(nscan, nvoxels) for nscan in nscans] # list of 4D nifti images paths
 gentles = [np.linspace(                         # you should load the real onsets/offsets
     0,                                          # here we are using fake data
     sample_frequency*nsamples, 
     num=nsamples
     )]                                              # list of the offset arrays for each fMRI data file
-features = [np.random.rand((nsamples, nfeatures))]  # list of np array
+features = [np.random.rand(nsamples, nfeatures)]  # list of np array
 
 # Instantiating the encoding model
 encoder = Encoder(linearmodel=linearmodel, saving_folder=output_folder)
@@ -94,13 +94,13 @@ nvoxels = 26000  # (use to define random data)  # you don't have to specify it i
 nsamples = 1750  # (use to define random data)  # you don't have to specify it if you have real features
 nfeatures = 768  # (use to define random data)  # you don't have to specify it if you have real features
 sample_frequency = 0.2 # (idem)                 # you don't have to specify it if you have real features
-fmri_data_test = [np.random.rand((nscan, nvoxels))  for nscan in nscans_test] # list of 4D nifti images paths
+fmri_data_test = [np.random.rand(nscan, nvoxels)  for nscan in nscans_test] # list of 4D nifti images paths
 gentles_test = [np.linspace(                    # you should load the real onsets/offsets
     0,                                          # here we are suing fake data
     sample_frequency*nsamples, 
     num=nsamples
     )]                                                  # list of the offset arrays for each fMRI data file
-features_test = [np.random.rand((nsamples, nfeatures))] # list of np array
+features_test = [np.random.rand(nsamples, nfeatures)] # list of np array
 
 # Preprocess fmri data with the masker
 fmri_data_test = [masker.transform(f) for f in fmri_data_test]
