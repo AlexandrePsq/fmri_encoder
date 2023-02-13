@@ -107,7 +107,7 @@ features_test = [np.random.rand(nsamples, nfeatures)] # list of np array
 
 # Preprocess fmri data with the masker
 fmri_data_test = [masker.transform(f) for f in fmri_data_test]
-nscans_test = [f.shape[0] for f in fmri_data]                                  # Number of scans per session
+nscans_test = [f.shape[0] for f in fmri_data_test]                                  # Number of scans per session
 fmri_data_test = np.vstack(fmri_data_test)
 fmri_data_test = fmri_pipe.fit_transform(fmri_data_test)
 nvoxels = fmri_data_test.shape[-1]   # (use to define random data)  # you don't have to specify it if you have real fMRI data
