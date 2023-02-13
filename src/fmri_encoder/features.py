@@ -1,6 +1,5 @@
 import os
 import joblib
-import logging
 import numpy as np
 
 
@@ -11,8 +10,6 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from nilearn.glm.first_level import compute_regressor
 
 from fmri_encoder.utils import get_reduction_method
-
-logging.basicConfig(filename='loggings.log', level=logging.INFO)
 
 
 class FMRIPipe(BaseEstimator, TransformerMixin):
@@ -39,7 +36,7 @@ class FMRIPipe(BaseEstimator, TransformerMixin):
         """
         self.fmri_pipe = Pipeline(
             [
-                ("selector", FeatureSelector()),  # Select non nan and non-constant values
+                ("selector", FMRICleaner()),  # Select non nan and non-constant values
                 ("scaler", StandardScaler()),
                 ("reductor", DimensionReductor(
                     method=self.fmri_reduction_method,
@@ -164,38 +161,36 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
         return self.transform(X, y, encoding_method, tr, groups, gentles, nscans)
 
 
-class FeatureSelector(BaseEstimator, TransformerMixin):
-    def __init__(self, fill_value=np.nan):
-        self.fill_value = fill_value
+class FMRICleaner(BaseEstimator, TransformerMixin):
+    def __init__(self, fill_nan_value=0, add_eps=True):
+        self.fill_nan_value = fill_nan_value
+        # whether to add noise to the first element of constant time-courses
+        # To avoid NaN when computing correlationsbb
+        self.add_eps = add_eps
 
     def fit(self, X, y=None, mask=None):
-        """Learn the features to remove. Use pre-selected features, constant features and features having nan.
+        """Learn the dirty voxels: constant voxels and voxels having nan.
         Args:
             - X: np.Array
             - y: np.Array (unused)
             - mask: np.Array
         """
-        logging.info(f'Identifying unuseful features: pre-selected features, constant features and features having nan...')
+        self.nan = np.isnan(X)
         std = X.std(0)
-        self.n_init_features = X.shape[1]
-        if mask is None:
-            self.mask = np.isnan(std) | (std == 0.0) 
-        else:
-            self.mask = np.isnan(std) | (std == 0.0) | mask==1
-        self.valid_idx = np.where(~self.mask)[0]
-        self.n_valid_features = len(self.valid_idx)
+        self.cst = np.isnan(std) | (std == 0.0) 
         return self
 
     def transform(self, X, y=None):
-        """Remove the identified features learnt when calling the ‘fit‘ module.
+        """Replace NaN with 0 and add small random noise to the first elemet of the constant time-courses.
         Args:
-            - X: np.Array
+            - X: np.Array, size [#scans, #voxels]
             - y: np.Array (unused)
         Returns:
             - np.Array
         """
-        logging.info(f'Removing unuseful features...')
-        return X[:, self.valid_idx]
+        X[self.nan] = self.fill_nan_value
+        X[self.cst, 0] = np.random.random(X[self.cst, 0].shape)/1000
+        return X
 
     def fit_transform(self, X, y=None):
         """Apply ‘.fit‘ and then ‘.transform‘
@@ -207,18 +202,6 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         """
         self.fit(X, y=y)
         return self.transform(X)
-
-    def inverse_transform(self, X, y=None):
-        """Reconstruct the original matrix from its reduced version by fillinf removed features with ‘self.fill_value‘.
-        Args:
-            - X: np.Array
-            - y: np.Array (unused)
-        """
-        logging.info(f'Reconstructing features...')
-        assert X.shape[1] == self.n_valid_features
-        out = np.ones((len(X), self.n_init_features)) * self.fill_value
-        out[:, self.valid_idx] = X
-        return out
 
 
 class DesignMatrixBuilder(BaseEstimator, TransformerMixin):

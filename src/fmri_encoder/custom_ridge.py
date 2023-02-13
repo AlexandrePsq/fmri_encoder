@@ -1,5 +1,4 @@
 import numpy as np
-import logging
 
 from sklearn.metrics import r2_score
 from scipy.stats import pearsonr

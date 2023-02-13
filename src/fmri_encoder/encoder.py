@@ -8,8 +8,6 @@ from sklearn.preprocessing import StandardScaler
 from fmri_encoder.metrics import get_metric
 from fmri_encoder.utils import get_linearmodel, check_folder
 
-logging.basicConfig(filename='loggings.log', level=logging.INFO)
-
 
 class Encoder(object):
     def __init__(
@@ -23,6 +21,7 @@ class Encoder(object):
             - linearmodel: str (or custom function)
             - **model_params: dict
         """
+        logging.basicConfig(filename=os.path.join(saving_folder, 'loggings.log'), level=logging.INFO)
         self.linearmodel = get_linearmodel(linearmodel, **model_params)
         self.is_fitted = False
         check_folder(saving_folder)

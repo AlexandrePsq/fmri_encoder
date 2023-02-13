@@ -1,18 +1,14 @@
-# Encoding Tutorial for MAIN Conference - Montreal 2023
-
-Repository containing several functions/classes to 
-* 1) extract features from a text using a GloVe or a GPT-2 model.
-* 2) use these features to fit fMRI brain data.
-
+# Tutorial on fMRI Encoding Models
 
 ## 0) Installation
 
-First install the requirements.
+First, install the requirements.
 
 ```shell
-pip install fmri_encoder
+git clone git@github.com:AlexandrePsq/fmri_encoder.git
 cd fmri_encoder
 pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Usage and examples
@@ -28,10 +24,7 @@ from fmri_encoder.utils import (
     get_groups, 
     check_folder
 )
-from fmri_encoder.data import (
-    preprocess_fmri_data,
-    fetch_masker
-)
+from fmri_encoder.data import fetch_masker
 from fmri_encoder.encoder import Encoder
 from fmri_encoder.features import FMRIPipe, FeaturesPipe
 
@@ -77,7 +70,7 @@ features_pipe = FeaturesPipe(
 masker = fetch_masker(os.path.join(output_folder, 'masker'), fmri_data, **{'detrend': True, 'standardize': True})
 
 # Preprocess fmri data with the masker
-fmri_data = preprocess_fmri_data(fmri_data, masker)
+fmri_data = [masker.transform(f) for f in fmri_data]
 fmri_data = np.vstack(fmri_data)
 fmri_data = fmri_pipe.fit_transform(fmri_data)
 
@@ -109,7 +102,7 @@ gentles_test = [np.linspace(                    # you should load the real onset
 features_test = [np.random.rand((nsamples, nfeatures))] # list of np array
 
 # Preprocess fmri data with the masker
-fmri_data_test = preprocess_fmri_data(fmri_data_test, masker)
+fmri_data_test = [masker.transform(f) for f in fmri_data_test]
 fmri_data_test = np.vstack(fmri_data_test)
 fmri_data_test = fmri_pipe.fit_transform(fmri_data_test)
 
@@ -175,6 +168,6 @@ To cite this work, use:
   month = {12},
   title = {{fMRI Linear Encoding Models}},
   url = {https://github.com/AlexandrePsq/fmri_encoder},
-  year = {2022}
+  year = {2023}
 }
 ```

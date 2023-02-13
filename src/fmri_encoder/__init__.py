@@ -2,8 +2,8 @@ from .encoder import Encoder
 from .features import (
     FMRIPipe,
     FeaturesPipe,
-    FeatureSelector,
+    FMRICleaner,
     DesignMatrixBuilder,
     DimensionReductor
 )
-from .ridge import CustomRidge
+from .custom_ridge import CustomRidge

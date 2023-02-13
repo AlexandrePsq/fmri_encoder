@@ -1,12 +1,9 @@
-import logging
-
 import numpy as np
+from scipy.stats import pearsonr
+from sklearn.metrics import r2_score
+
 import torch
 import torch.nn.functional as F
-from sklearn.metrics import r2_score
-from scipy.stats import pearsonr
-
-logging.basicConfig(filename='loggings.log', level=logging.INFO)
 
 
 def get_metric(metric_name):
@@ -26,10 +23,8 @@ def get_metric(metric_name):
         "mse_dist": mse,
     }
     if metric_name in metric_dic.keys():
-        logging.info(f'Loading {metric_name}...')
         return metric_dic[metric_name]
     else:
-        logging.info(f"Loading {str(metric_name)} as a custom metric, not a string...")
         return metric_name
 
 def r(X, Y):
@@ -49,6 +44,27 @@ def r(X, Y):
         return np.hstack([pearsonr(X[:,i], Y[:, i])[0] for i in range(X.shape[1])])
     else:
         raise ValueError(f'Input dimension X: {X.shape} and Y: {Y.shape}. Please apply ‘r‘ function on matrices with ndim=2. Correlation will be computed on axis 0.')
+
+#def r(X, Y):
+#    """Compute the pearson correlation between X and Y.
+#    Args:
+#        - X: np.Array (#bsz, n_samples, #voxels)
+#        - Y: np.Array (n_samples, #voxels)
+#    """
+#    if X.ndim == 1:
+#        X = X[None, :, None]
+#    elif X.ndim == 2:
+#        X = X[None, ...]
+#    if Y.ndim == 1:
+#        Y = Y[None, :, None]
+#    elif Y.ndim == 2:
+#        Y = Y[None, ...]
+#    X = X - X.mean(1)[:, None, :]
+#    Y = Y - Y.mean(1)[:, None, :]
+#    SX2 = (X**2).sum(1) ** 0.5
+#    SY2 = (Y**2).sum(1) ** 0.5
+#    SXY = (X * Y).sum(1)
+#    return SXY / (SX2 * SY2)
 
 def r_nan(X, Y):
     """Compute the pearson correlation between X and Y.
