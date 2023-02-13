@@ -23,6 +23,7 @@ We then load, mask and process the fMRI data.
 import os
 import numpy as np
 from nibabel.testing import data_path
+from nilearn.image import concat_imgs
 from fmri_encoder.utils import (
     get_groups, 
     check_folder
@@ -92,12 +93,11 @@ features_train = features_pipe.fit_transform(
 encoder.fit(features_train, fmri_data_train)
 
 # Generating fake testing data
-nscans_test = [300]                             # Number of scans per session
-nvoxels = 26000  # (use to define random data)  # you don't have to specify it if you have real fMRI data
+
 nsamples = 1750  # (use to define random data)  # you don't have to specify it if you have real features
 nfeatures = 768  # (use to define random data)  # you don't have to specify it if you have real features
 sample_frequency = 0.2 # (idem)                 # you don't have to specify it if you have real features
-fmri_data_test = [np.random.rand(nscan, nvoxels)  for nscan in nscans_test] # list of 4D nifti images paths
+fmri_data_test = [concat_imgs([example_fmri_data for i in range(3)])]
 gentles_test = [np.linspace(                    # you should load the real onsets/offsets
     0,                                          # here we are suing fake data
     sample_frequency*nsamples, 
@@ -107,8 +107,10 @@ features_test = [np.random.rand(nsamples, nfeatures)] # list of np array
 
 # Preprocess fmri data with the masker
 fmri_data_test = [masker.transform(f) for f in fmri_data_test]
+nscans_test = [f.shape[0] for f in fmri_data]                                  # Number of scans per session
 fmri_data_test = np.vstack(fmri_data_test)
 fmri_data_test = fmri_pipe.fit_transform(fmri_data_test)
+nvoxels = fmri_data_test.shape[-1]   # (use to define random data)  # you don't have to specify it if you have real fMRI data
 
 # Preprocess features
 features_test = np.vstack(features_test)
