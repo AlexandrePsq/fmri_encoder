@@ -75,12 +75,12 @@ masker = fetch_masker(os.path.join(output_folder, 'masker'), fmri_data, **{'detr
 fmri_data = [masker.transform(f) for f in fmri_data]
 nscans = [f.shape[0] for f in fmri_data]                                  # Number of scans per session
 fmri_data = np.vstack(fmri_data)
-fmri_data = fmri_pipe.fit_transform(fmri_data)
-nvoxels = fmri_data.shape[-1]  # (use to define random data)  # you don't have to specify it if you have real fMRI data
+fmri_data_train = fmri_pipe.fit_transform(fmri_data)
+nvoxels = fmri_data_train.shape[-1]  # (use to define random data)  # you don't have to specify it if you have real fMRI data
 
 # Preprocess features
 features = np.vstack(features)
-features = features_pipe.fit_transform(
+features_train = features_pipe.fit_transform(
     features,
     encoding_method=encoding_method,
     tr=tr,
