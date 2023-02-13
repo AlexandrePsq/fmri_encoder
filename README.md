@@ -94,7 +94,7 @@ nvoxels = 26000  # (use to define random data)  # you don't have to specify it i
 nsamples = 1750  # (use to define random data)  # you don't have to specify it if you have real features
 nfeatures = 768  # (use to define random data)  # you don't have to specify it if you have real features
 sample_frequency = 0.2 # (idem)                 # you don't have to specify it if you have real features
-fmri_data_test = [np.random.rand((nscans, nvoxels))] # list of 4D nifti images paths
+fmri_data_test = [np.random.rand((nscan, nvoxels))  for nscan in nscans_test] # list of 4D nifti images paths
 gentles_test = [np.linspace(                    # you should load the real onsets/offsets
     0,                                          # here we are suing fake data
     sample_frequency*nsamples, 
