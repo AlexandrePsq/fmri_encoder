@@ -10,3 +10,4 @@ nibabel
 nilearn
 matplotlib
 tqdm
+pytest
