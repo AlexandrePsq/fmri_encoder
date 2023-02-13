@@ -7,5 +7,6 @@ from .features import (
     DimensionReductor
 )
 from .custom_ridge import CustomRidge
-import .utils as utils
-import .data as data
+from . import utils as utils
+from . import data as data
+from . import metrics as metrics
