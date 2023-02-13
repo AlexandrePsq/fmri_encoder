@@ -20,6 +20,7 @@ We first instantiate all variables and object classes.
 We then load, mask and process the fMRI data.
 
 ```python
+import numpy as np
 from fmri_encoder.utils import (
     get_groups, 
     check_folder
@@ -44,7 +45,7 @@ nvoxels = 26000  # (use to define random data)  # you don't have to specify it i
 nsamples = 2000  # (use to define random data)  # you don't have to specify it if you have real features
 nfeatures = 768  # (use to define random data)  # you don't have to specify it if you have real features
 sample_frequency = 0.2 # (idem)                 # you don't have to specify it if you have real features
-fmri_data = [np.random.rand((nscans, nvoxels))] # list of 4D nifti images paths
+fmri_data = [np.random.rand((nscan, nvoxels)) for nscan in nscans] # list of 4D nifti images paths
 gentles = [np.linspace(                         # you should load the real onsets/offsets
     0,                                          # here we are using fake data
     sample_frequency*nsamples, 
