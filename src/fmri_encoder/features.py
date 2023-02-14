@@ -114,7 +114,7 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
             os.path.join(self.saving_folder, "features_pipe.joblib"),
         )
 
-    def transform(self, X, y=None, encoding_method='hrf', tr=2, groups=None, gentles=None, nscans=None):
+    def transform(self, X, y=None, encoding_method='hrf', tr=2, groups=None, gentles=None, nscans=None, n_delays=5, oversampling=30):
         """Remove the identified features learnt when calling the ‘fit‘ module.
         Args:
             - X: np.Array
@@ -124,6 +124,9 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
             - groups: list of int
             - gentles: list of np.Arrays
             - nscans: list of int
+            - n_delays: int
+            - oversampling: int
+
         Returns:
             - np.Array
         """
@@ -135,6 +138,8 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
                     groups=groups,
                     gentles=gentles,
                     nscans=nscans,
+                    n_delays=n_delays,
+                    oversampling=oversampling,
                 )),
                 ("scaler2", StandardScaler()),
             ]
@@ -205,26 +210,29 @@ class FMRICleaner(BaseEstimator, TransformerMixin):
 
 
 class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
-    def __init__(self, method='hrf', tr=2, groups=None, gentles=None, nscans=None):
+    def __init__(self, method='hrf', tr=2, groups=None, gentles=None, nscans=None, n_delays=5, oversampling=30):
         """Instanciate a class to create design matrices from generated embedding representations.
         Args:
             - method: str
             - tr: float
             - groups: list of list of int (indexes in feature space)
+            - n_delays: int
+            - oversampling: int
         """
         self.method = method
         self.tr = tr
         self.groups = groups
         self.gentles = gentles
         self.nscans = nscans
+        self.n_delays = n_delays
+        self.oversampling = oversampling
 
-    def compute_dm_hrf(self, X, nscan, gentle, oversampling=30):
+    def compute_dm_hrf(self, X, nscan, gentle):
         """Compute the design matrix using the HRF kernel from SPM.
         Args:
             - X: np.Array (generated embeddings, size: (#samples * #features))
             - nscan: int
             - gentle: np.Array (#samples)
-            - oversampling: int
         Returns:
             - dm: np.Array
         """
@@ -244,7 +252,7 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
                                 nscan * self.tr - gentle[0] // self.tr,
                                 self.tr,
                             ),
-                            oversampling=oversampling,
+                            oversampling=self.oversampling,
                         )[
                             0
                         ]  # compute_regressor returns (signal, name)
@@ -254,10 +262,52 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
                 )
         return dm
 
-    def compute_dm_fir(self):
+    def compute_dm_fir(self, X, nscan, gentle):
         """Compute the design matrix using the FIR method.
+        Args:
+            - X: np.Array (generated embeddings, size: (#samples * #features))
+            - nscan: int
+            - gentle: np.Array (#samples)
+        Returns:
+            - dm: np.Array
         """
-        raise NotImplementedError()
+        # Aggregate over scans
+        index_tr = gentle // self.tr
+        X = np.vstack(
+                [
+                    np.mean(
+                        X[np.argwhere(index_tr==i)], 
+                        axis=0
+                    ) if i<=np.max(index_tr) else np.zeros(X.shape[-1]) for i in range(nscan)
+                ]
+            )
+        # X = [ 1   3   5]
+        #     [ 2   4   6]
+        # Duplicate with delays
+        # Add TR at the beginning
+        X_pad = np.concatenate([np.zeros((self.n_delays, X.shape[1])), X], axis=0)
+        #         [ 0   0   0]
+        # X_pad = [ 0   0   0]  , ndelays=2
+        #         [ 1   3   5]
+        #         [ 2   4   6]
+        # Apply FIR
+        fir_X = np.stack(
+            [np.roll(X_pad, k, axis=0) for k in np.arange(self.n_delays)],
+            axis=-1,
+        )
+        #         [[ 0   0   0]   [ 2   4   6]   [ 1   3   5]]
+        # fir_X = [[ 0   0   0]   [ 0   0   0]   [ 2   4   6]]  , ndelays=2
+        #         [[ 1   3   5]   [ 0   0   0]   [ 0   0   0]]
+        #         [[ 2   4   6]   [ 1   3   5]   [ 0   0   0]]
+        # Cut extra TR at the beginning
+        fir_X = fir_X[self.n_delays:]
+        # fir_X = [[ 1   3   5]   [ 0   0   0]   [ 0   0   0]]
+        #         [[ 2   4   6]   [ 1   3   5]   [ 0   0   0]]
+        # reshape to: [texts, dim * n_delays]
+        dm = fir_X.reshape(len(fir_X), -1)
+        # dm = [ 1   3   5   0   0   0   0   0   0]
+        #      [ 2   4   6   1   3   5   0   0   0]
+        return dm
     
     def fit(self, X=None, y=None):
         pass
@@ -273,10 +323,10 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
                 if isinstance(gentle, str):
                     gentle  = np.load(gentle)
                 nscan = self.nscans[i]
-                output.append(self.compute_dm_hrf(X_, nscan, gentle, oversampling=30))
+                output.append(self.compute_dm_hrf(X_, nscan, gentle))
             X = np.concatenate(output)
         elif self.method =='fir':
-            X = self.compute_dm_fir()
+            X = self.compute_dm_fir(X_, nscan, gentle, )
         return X
     
     def fit_transform(self, X, y=None):
