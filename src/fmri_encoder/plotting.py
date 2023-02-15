@@ -15,6 +15,62 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
+def plot_voxels_time_course(fmri_data, saving_folder=None, format_figure='pdf', dpi=100):
+    """Plot voxels time-course.
+    Args:
+        - fmri_data: np.Array, size [#time-points, #voxels]
+        - saving_folder: str
+    """
+    x = input("Are you sure the input has less than 20 voxels ? Otherwise it will crash...\n[yes/no]")
+    if x=='yes':
+        nb_voxels = fmri_data.shape[-1]
+        fig, axs = plt.subplots(nb_voxels, 1, figsize=(25, nb_voxels*4))
+        for i in range(nb_voxels):
+            axs[i].plot(fmri_data[:, i])
+            axs[i].grid(True)
+            axs[i].tick_params(axis='both', which='major', labelsize=20)
+            axs[i].tick_params(axis='both', which='minor', labelsize=20)
+            axs[i].set_ylabel(f'Voxel {i}', fontsize=25)
+        axs[nb_voxels-1].set_xlabel('Time', fontsize=25)
+        plt.suptitle('Voxels timecourses', fontsize=40)
+        if saving_folder is not None:
+            check_folder(saving_folder)
+            plt.savefig(
+                os.path.join(
+                    saving_folder, 
+                    f'voxels_time_course{format_figure}'
+                ), 
+                format=format_figure, 
+                dpi=dpi, 
+                bbox_inches='tight', 
+                pad_inches=0
+            )
+        plt.show()
+    else:
+        print('Reduce it by selecting a subset of voxels.')
+
+def plot_design_matrix(matriix, saving_folder=None, format_figure='pdf', dpi=100, figsize=(15, 15)):
+    """Plot a  design matrix.
+    Args:
+        - matriix: np.Array, size [#sample, #features]
+        - saving_folder: str
+    """
+    plt.imshow(np.random.random(figsize))
+    plt.colorbar()
+    if saving_folder is not None:
+            check_folder(saving_folder)
+            plt.savefig(
+                os.path.join(
+                    saving_folder, 
+                    f'design_matrix{format_figure}'
+                ), 
+                format=format_figure, 
+                dpi=dpi, 
+                bbox_inches='tight', 
+                pad_inches=0
+            )
+    plt.show()
+
 def set_projection_params(
     hemi, 
     view, 
