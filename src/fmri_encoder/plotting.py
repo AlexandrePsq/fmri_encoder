@@ -49,13 +49,17 @@ def plot_voxels_time_course(fmri_data, saving_folder=None, format_figure='pdf', 
     else:
         print('Reduce it by selecting a subset of voxels.')
 
-def plot_design_matrix(matrix, saving_folder=None, format_figure='pdf', dpi=100, figsize=(15, 15)):
+def plot_design_matrix(matrix, saving_folder=None, title='Design matrix', format_figure='pdf', dpi=100, figsize=(15, 15)):
     """Plot a  design matrix.
     Args:
         - matrix: np.Array, size [#sample, #features]
         - saving_folder: str
+        - title: str
     """
     plt.imshow(matrix)
+    plt.xlabel('Features')
+    plt.ylabel('Events')
+    plt.title(title)
     plt.colorbar()
     if saving_folder is not None:
             check_folder(saving_folder)
