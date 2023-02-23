@@ -2,8 +2,9 @@ import os
 import numpy as np
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
-from nilearn import datasets
+from nilearn import datasets, maskers
 from nilearn.surface import vol_to_surf
 from nilearn.glm import threshold_stats_img
 from nilearn.plotting import plot_surf_stat_map
@@ -14,6 +15,47 @@ from fmri_encoder.utils import check_folder
 import warnings
 warnings.filterwarnings("ignore")
 
+def concat_colormaps(*args, cutting_threshold=75):
+    """Concat a list of colormaps.
+    Arguments:
+        - args: list of str
+        - cutting_threshold: int
+    Returns:
+        - new_cmap: Matplotlib Colormap
+    """
+    cmaps_tmp = []
+    cmaps = []
+    for arg in args:
+        if isinstance(arg, str):
+            cmaps_tmp.append(plt.cm.get_cmap(arg))
+        else:
+            cmaps_tmp.append(arg)
+    for cmap in cmaps_tmp:
+        cmaps.append(cmap(np.linspace(0, 1, 255)))
+    new_cmap = ListedColormap(np.vstack([cmap[cutting_threshold:] for cmap in cmaps]))
+    return new_cmap
+
+def plot_colorbar(cms, data=None, vmax=1, vmin=None):
+    """Plot a colormap.
+    Arguments: 
+        - cms: list of Matplotlib Colormap
+    """
+    if vmin is None:
+        vmin = -vmax
+    np.random.seed(19680801)
+    if data is None:
+        data = np.random.randn(30, 30)
+
+    if type(cms)==list:
+        fig, axs = plt.subplots(1, len(cms), figsize=(6, 3), constrained_layout=True)
+        for [ax, cmap] in zip(axs, cms):
+            psm = ax.pcolormesh(data, cmap=cmap, rasterized=True, vmin=vmin, vmax=vmax)
+            fig.colorbar(psm, ax=ax)
+    else:
+        fig, axs = plt.subplots(1, 1, figsize=(6, 3), constrained_layout=True)
+        psm = axs.pcolormesh(data, cmap=cms, rasterized=True, vmin=vmin, vmax=vmax)
+        fig.colorbar(psm, ax=axs)
+    plt.show()
 
 def plot_voxels_time_course(fmri_data, saving_folder=None, format_figure='pdf', dpi=100):
     """Plot voxels time-course.
@@ -74,6 +116,70 @@ def plot_design_matrix(matrix, saving_folder=None, title='Design matrix', format
                 pad_inches=0
             )
     plt.show()
+
+def superimpose_imgs_rgb(img1=None, img2=None, img3=None, masker=None):
+    """Considering 3 nifti effect-size images, it create a RGB value 
+    for each triplet of values and return the associated image and 
+    colorbar to be plotted. If less than three images are given, the
+    remaining images are considered as full of zeros.
+    Args:
+        - img1: NiftiImage (Red)
+        - img2: NiftiImage (Green)
+        - img3: NiftiImage (Blue)
+        - masker = NifitMasker
+    Returns:
+        - img: NiftiImage
+        - cmap: Matplotlib ColorMap
+    """
+    if (img1 is None) and (img2 is None) and (img3 is None):
+        raise ValueError("Not images were given as input...")
+    ref_img = img1 if img1 is not None else (img2 if img2 is not None else img3)
+    if img1 is None:
+        img1 = new_img_like(ref_img, np.zeros(ref_img.shape))
+    if img2 is None:
+        img2 = new_img_like(ref_img, np.zeros(ref_img.shape))
+    if img3 is None:
+        img3 = new_img_like(ref_img, np.zeros(ref_img.shape))
+
+    if masker is None:
+        tmp1 = new_img_like(img1, np.abs(img1.get_fdata()))
+        tmp2 = new_img_like(img2, np.abs(img2.get_fdata()))
+        tmp3 = new_img_like(img3, np.abs(img3.get_fdata()))
+        mask = math_img('img1+img2+img3!=0', img1=tmp1, img2=tmp2, img3=tmp3)
+        masker = maskers.NiftiMasker(mask, **{'detrend': False, 'standardize': False, 'standardize_confounds': False})
+        masker.fit()
+    
+    max_value = np.max(np.abs(np.stack([
+        masker.transform(img1).reshape(-1),
+        masker.transform(img2).reshape(-1), 
+        masker.transform(img3).reshape(-1)
+    ])))
+    
+    data = list(zip(
+        np.round(masker.transform(img1).reshape(-1)/ max_value, 4), 
+        np.round(masker.transform(img2).reshape(-1)/ max_value, 4), 
+        np.round(masker.transform(img3).reshape(-1)/ max_value, 4)
+        ))
+    cmap = [(0., 0., 0., 1)]
+    img = []
+    print(len(data))
+    values = []
+    #indexes = np.linspace(-1, 1, len(data))
+    indexes = np.arange(1, 1+len(data))
+    for i, value in enumerate(data):
+        value = (value[0], value[1], value[2], 1)
+        if value==(0., 0., 0., 1):
+            img.append(0)
+        else:
+            values.append(value)
+            img.append(indexes[i])
+        cmap.append(value)
+    img = np.array(img) / len(img)
+    #cmap = ListedColormap(cmap) # LinearSegmentedColormap.from_list('custom', cmap, N=len(cmap))
+    #img = masker.inverse_transform(np.hstack(img))
+    #plot_colorbar(cmap)
+    return img, cmap, values, masker
+
 
 def set_projection_params(
     hemi, 
@@ -285,9 +391,11 @@ def pretty_plot(
     format_figure='pdf', 
     dpi=300, 
     plot_name='test',
-    row_size_factor=6,
+    symmetric_cbar=False,
+    colorbar=False,
+    row_size_factor=4,
     overlapping=6,
-    column_size_factor=12,
+    column_size_factor=5,
     ):
     """
     """
@@ -325,7 +433,7 @@ def pretty_plot(
             for v, view in enumerate(views):
                 ax = axes[i][positions[f"{view}-{hemi}"]]
                 kwargs = set_projection_params(hemi, view, cmap=cmap, 
-                inflated=inflated, threshold=1e-15, colorbar=False, symmetric_cbar=False, template=None, figure=figure, ax=ax, vmax=vmax[i])
+                inflated=inflated, threshold=1e-15, colorbar=colorbar, symmetric_cbar=symmetric_cbar, template=None, figure=figure, ax=ax, vmax=vmax[i])
 
                 surf_img = surf_imgs[name][f'{hemi}-{view}']
                 plot_surf_stat_map(stat_map=surf_img,**kwargs)
