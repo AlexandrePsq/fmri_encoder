@@ -247,11 +247,7 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
                                 )
                             ),
                             hrf_model="spm",
-                            frame_times=np.arange(
-                                0.0,
-                                nscan * self.tr, # - gentle[0] // self.tr,
-                                self.tr,
-                            ),
+                            frame_times=np.arange(nscan) * self.tr,
                             oversampling=self.oversampling,
                         )[
                             0
