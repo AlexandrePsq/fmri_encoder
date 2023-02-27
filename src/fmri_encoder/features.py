@@ -1,6 +1,8 @@
 import os
 import joblib
 import numpy as np
+from tqdm import tqdm
+from joblib import Parallel, delayed
 
 
 from sklearn.pipeline import Pipeline
@@ -13,7 +15,7 @@ from fmri_encoder.utils import get_reduction_method
 
 
 class FMRIPipe(BaseEstimator, TransformerMixin):
-    def __init__(self, fmri_reduction_method=None, fmri_ndim=None, saving_folder='./derivatives'):
+    def __init__(self, fmri_reduction_method=None, fmri_ndim=None, saving_folder="./derivatives"):
         """Set the preprocessing pipeline for fMRI data.
         Args:
             - fmri_reduction_method:str
@@ -26,7 +28,7 @@ class FMRIPipe(BaseEstimator, TransformerMixin):
         self.fmri_ndim = fmri_ndim
         self.fmri_pipe = None
         self.saving_folder = saving_folder
-    
+
     def fit(self, X, y=None):
         """
         Args:
@@ -38,11 +40,13 @@ class FMRIPipe(BaseEstimator, TransformerMixin):
             [
                 ("selector", FMRICleaner()),  # Select non nan and non-constant values
                 ("scaler", StandardScaler()),
-                ("reductor", DimensionReductor(
-                    method=self.fmri_reduction_method,
-                    ndim=self.fmri_ndim,
-                    )
-                ) # reduce dimension along column axis
+                (
+                    "reductor",
+                    DimensionReductor(
+                        method=self.fmri_reduction_method,
+                        ndim=self.fmri_ndim,
+                    ),
+                ),  # reduce dimension along column axis
             ]
         )
         self.fmri_pipe.fit(X, y=y)
@@ -60,7 +64,7 @@ class FMRIPipe(BaseEstimator, TransformerMixin):
             - np.Array
         """
         X = self.fmri_pipe.transform(X)
-        
+
         return X
 
     def fit_transform(self, X, y=None):
@@ -76,7 +80,9 @@ class FMRIPipe(BaseEstimator, TransformerMixin):
 
 
 class FeaturesPipe(BaseEstimator, TransformerMixin):
-    def __init__(self, features_reduction_method=None, features_ndim=None, saving_folder='./derivatives'):
+    def __init__(
+        self, features_reduction_method=None, features_ndim=None, saving_folder="./derivatives"
+    ):
         """Set the preprocessing pipeline for features.
         Args:
             - features_reduction_method:str
@@ -100,12 +106,17 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
         """
         self.features_pipe = Pipeline(
             [
-                ("scaler", StandardScaler()), # may be remove it form the pipe to fit it each time (ask Bertrand)
-                ("reductor", DimensionReductor(
-                    method=self.features_reduction_method,
-                    ndim=self.features_ndim,
-                    )
-                ), # reduce dimension along column axis
+                (
+                    "scaler",
+                    StandardScaler(),
+                ),  # may be remove it form the pipe to fit it each time (ask Bertrand)
+                (
+                    "reductor",
+                    DimensionReductor(
+                        method=self.features_reduction_method,
+                        ndim=self.features_ndim,
+                    ),
+                ),  # reduce dimension along column axis
             ]
         )
         self.features_pipe.fit(X, y=y)
@@ -114,7 +125,19 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
             os.path.join(self.saving_folder, "features_pipe.joblib"),
         )
 
-    def transform(self, X, y=None, encoding_method='hrf', tr=2, groups=None, gentles=None, nscans=None, n_delays=5, oversampling=30):
+    def transform(
+        self,
+        X,
+        y=None,
+        encoding_method="hrf",
+        tr=2,
+        groups=None,
+        gentles=None,
+        nscans=None,
+        n_delays=5,
+        oversampling=30,
+        n_jobs=-2,
+    ):
         """Remove the identified features learnt when calling the ‘fit‘ module.
         Args:
             - X: np.Array
@@ -126,30 +149,37 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
             - nscans: list of int
             - n_delays: int
             - oversampling: int
+            - n_jobs: int
 
         Returns:
             - np.Array
         """
         dm = Pipeline(
             [
-                ("make_design_matrix", DesignMatrixBuilder(
-                    method=encoding_method,
-                    tr=tr,
-                    groups=groups,
-                    gentles=gentles,
-                    nscans=nscans,
-                    n_delays=n_delays,
-                    oversampling=oversampling,
-                )),
+                (
+                    "make_design_matrix",
+                    DesignMatrixBuilder(
+                        method=encoding_method,
+                        tr=tr,
+                        groups=groups,
+                        gentles=gentles,
+                        nscans=nscans,
+                        n_delays=n_delays,
+                        oversampling=oversampling,
+                        n_jobs=n_jobs,
+                    ),
+                ),
                 ("scaler2", StandardScaler()),
             ]
         )
         X = self.features_pipe.transform(X)
         X = dm.fit_transform(X, y=y)
-        
+
         return X
 
-    def fit_transform(self, X, y=None, encoding_method='hrf', tr=2, groups=None, gentles=None, nscans=None):
+    def fit_transform(
+        self, X, y=None, encoding_method="hrf", tr=2, groups=None, gentles=None, nscans=None
+    ):
         """Apply ‘.fit‘ and then ‘.transform‘
         Args:
             - X: np.Array
@@ -182,7 +212,7 @@ class FMRICleaner(BaseEstimator, TransformerMixin):
         """
         self.nan = np.isnan(X)
         std = X.std(0)
-        self.cst = np.isnan(std) | (std == 0.0) 
+        self.cst = np.isnan(std) | (std == 0.0)
         return self
 
     def transform(self, X, y=None):
@@ -194,7 +224,7 @@ class FMRICleaner(BaseEstimator, TransformerMixin):
             - np.Array
         """
         X[self.nan] = self.fill_nan_value
-        X[0, self.cst] = np.random.rand(*X[0, self.cst].shape)/1000
+        X[0, self.cst] = np.random.rand(*X[0, self.cst].shape) / 1000
         return X
 
     def fit_transform(self, X, y=None):
@@ -210,7 +240,17 @@ class FMRICleaner(BaseEstimator, TransformerMixin):
 
 
 class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
-    def __init__(self, method='hrf', tr=2, groups=None, gentles=None, nscans=None, n_delays=5, oversampling=30):
+    def __init__(
+        self,
+        method="hrf",
+        tr=2,
+        groups=None,
+        gentles=None,
+        nscans=None,
+        n_delays=5,
+        oversampling=30,
+        n_jobs=-2,
+    ):
         """Instanciate a class to create design matrices from generated embedding representations.
         Args:
             - method: str
@@ -226,8 +266,25 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
         self.nscans = nscans
         self.n_delays = n_delays
         self.oversampling = oversampling
+        self.n_jobs = n_jobs
 
-    def compute_dm_hrf(self, X, nscan, gentle):
+    @staticmethod
+    def compute_regressor_parallel(index, X, gentle, nscan, tr, oversampling):
+        reg = compute_regressor(
+            exp_condition=np.vstack(
+                (
+                    gentle,
+                    np.zeros(X.shape[0]),
+                    X[:, index],
+                )
+            ),
+            hrf_model="spm",
+            frame_times=np.arange(nscan) * tr,
+            oversampling=oversampling,
+        )[0]
+        return reg
+
+    def compute_dm_hrf(self, X, nscan, gentle, n_jobs=-2):
         """Compute the design matrix using the HRF kernel from SPM.
         Args:
             - X: np.Array (generated embeddings, size: (#samples * #features))
@@ -236,26 +293,18 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
         Returns:
             - dm: np.Array
         """
-        dm = np.concatenate(
-                    [
-                        compute_regressor(
-                            exp_condition=np.vstack(
-                                (
-                                    gentle,
-                                    np.zeros(X.shape[0]),
-                                    X[:, index],
-                                )
-                            ),
-                            hrf_model="spm",
-                            frame_times=np.arange(nscan) * self.tr,
-                            oversampling=self.oversampling,
-                        )[
-                            0
-                        ]  # compute_regressor returns (signal, name)
-                        for index in range(X.shape[-1])
-                    ],
-                    axis=1,
-                )
+        regressors = Parallel(n_jobs=n_jobs)(
+            delayed(self.compute_regressor_parallel)(
+                index,
+                X,
+                gentle,
+                nscan,
+                self.tr,
+                self.oversampling,
+            )
+            for index in tqdm(range(X.shape[-1]), desc="compute dm hrf")
+        )
+        dm = np.concatenate(regressors, axis=1)
         return dm
 
     def compute_dm_fir(self, X, nscan, gentle):
@@ -270,13 +319,13 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
         # Aggregate over scans
         index_tr = gentle // self.tr
         X = np.vstack(
-                [
-                    np.mean(
-                        X[np.argwhere(index_tr==i)], 
-                        axis=0
-                    ) if i<=np.max(index_tr) else np.zeros(X.shape[-1]) for i in range(nscan)
-                ]
-            )
+            [
+                np.mean(X[np.argwhere(index_tr == i)], axis=0)
+                if i <= np.max(index_tr)
+                else np.zeros(X.shape[-1])
+                for i in range(nscan)
+            ]
+        )
         # X = [ 1   3   5]
         #     [ 2   4   6]
         # Duplicate with delays
@@ -296,7 +345,7 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
         #         [[ 1   3   5]   [ 0   0   0]   [ 0   0   0]]
         #         [[ 2   4   6]   [ 1   3   5]   [ 0   0   0]]
         # Cut extra TR at the beginning
-        fir_X = fir_X[self.n_delays:]
+        fir_X = fir_X[self.n_delays :]
         # fir_X = [[ 1   3   5]   [ 0   0   0]   [ 0   0   0]]
         #         [[ 2   4   6]   [ 1   3   5]   [ 0   0   0]]
         # reshape to: [texts, dim * n_delays]
@@ -304,27 +353,30 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
         # dm = [ 1   3   5   0   0   0   0   0   0]
         #      [ 2   4   6   1   3   5   0   0   0]
         return dm
-    
+
     def fit(self, X=None, y=None):
         pass
-    
+
     def transform(self, X):
-        """Transform input data
-        """
-        if self.method =='hrf':
+        """Transform input data"""
+        if self.method == "hrf":
             output = []
             for i, group in enumerate(self.groups):
                 X_ = X[group, :]
                 gentle = self.gentles[i]
                 if isinstance(gentle, str):
-                    gentle  = np.load(gentle)
+                    gentle = np.load(gentle)
                 nscan = self.nscans[i]
-                output.append(self.compute_dm_hrf(X_, nscan, gentle))
+                output.append(self.compute_dm_hrf(X_, nscan, gentle, n_jobs=self.n_jobs))
             X = np.concatenate(output)
-        elif self.method =='fir':
-            X = self.compute_dm_fir(X_, nscan, gentle, )
+        elif self.method == "fir":
+            X = self.compute_dm_fir(
+                X_,
+                nscan,
+                gentle,
+            )
         return X
-    
+
     def fit_transform(self, X, y=None):
         """Apply successively ‘.fit‘ and ‘.transform‘.
         Args:
@@ -333,7 +385,7 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
         """
         self.fit(X, y)
         return self.transform(X)
-            
+
 
 class DimensionReductor(BaseEstimator, TransformerMixin):
     def __init__(self, method=None, ndim=None, **method_args):
@@ -345,7 +397,7 @@ class DimensionReductor(BaseEstimator, TransformerMixin):
         """
         self.method = get_reduction_method(method, ndim=ndim)
         self.ndim = ndim
-    
+
     def fit(self, X, y=None):
         """Fit the dimension reduction operator.
         Args:
@@ -353,7 +405,7 @@ class DimensionReductor(BaseEstimator, TransformerMixin):
             - y: np.Array
         """
         self.method.fit(X, y)
-    
+
     def transform(self, X):
         """Transform X using the fitted dimension reduction operator.
         Args:
@@ -369,7 +421,7 @@ class DimensionReductor(BaseEstimator, TransformerMixin):
         """
         self.method.fit(X, y)
         return self.method.transform(X)
-    
+
     def inverse_transform(self, X):
         """Inverse transform X using the fitted dimension reduction operator.
         Args:
