@@ -258,6 +258,7 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
             - groups: list of list of int (indexes in feature space)
             - n_delays: int
             - oversampling: int
+            - n_jobs: int
         """
         self.method = method
         self.tr = tr
@@ -290,6 +291,7 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
             - X: np.Array (generated embeddings, size: (#samples * #features))
             - nscan: int
             - gentle: np.Array (#samples)
+            - n_jobs: int
         Returns:
             - dm: np.Array
         """
