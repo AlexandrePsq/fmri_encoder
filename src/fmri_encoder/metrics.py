@@ -14,8 +14,8 @@ def get_metric(metric_name):
         - metric: built-in function
     """
     metric_dic = {
-        "r": r,
-        "r_nan": r_nan,
+        "r": corr,
+        "r_nan": corr,
         "r2": lambda x, y: r2_score(x, y, multioutput="raw_values"),
         "r2_nan": r2_nan,
         "mse": lambda x, y: mse(x, y, axis=0),
@@ -27,73 +27,22 @@ def get_metric(metric_name):
     else:
         return metric_name
 
-def r(X, Y):
+
+def corr(X, Y):
     """Compute the pearson correlation between X and Y.
     Args:
         - X: np.Array
         - Y: np.Array
     """
-    if (X.ndim == 1) and (Y.ndim == 1):
-        return pearsonr(X, Y)[0]
-    elif ((X.ndim == 1) and ~(Y.ndim == 1)) | (~(X.ndim == 1) and (Y.ndim == 1)):
-        raise ValueError(f'Dimension Mismatch between X: {X.shape} and Y: {Y.shape}')
-    elif (X.ndim == 2) and (Y.ndim == 1):
-        return np.hstack([pearsonr(X[:,i], Y)[0] for i in range(X.shape[1])])
-    elif (X.ndim == 2) and (Y.ndim == 2):
-        assert X.shape[1]==Y.shape[1]
-        return np.hstack([pearsonr(X[:,i], Y[:, i])[0] for i in range(X.shape[1])])
-    else:
-        raise ValueError(f'Input dimension X: {X.shape} and Y: {Y.shape}. Please apply ‘r‘ function on matrices with ndim=2. Correlation will be computed on axis 0.')
+    mX = X - np.mean(X, axis=0)
+    mY = Y - np.mean(Y, axis=0)
+    norm_mX = np.sqrt(np.sum(mX ** 2, axis=0, keepdims=True))
+    norm_mX[norm_mX==0] = 1.
+    norm_mY = np.sqrt(np.sum(mY ** 2, axis=0, keepdims=True))
+    norm_mY[norm_mY==0] = 1.
 
-#def r(X, Y):
-#    """Compute the pearson correlation between X and Y.
-#    Args:
-#        - X: np.Array (#bsz, n_samples, #voxels)
-#        - Y: np.Array (n_samples, #voxels)
-#    """
-#    if X.ndim == 1:
-#        X = X[None, :, None]
-#    elif X.ndim == 2:
-#        X = X[None, ...]
-#    if Y.ndim == 1:
-#        Y = Y[None, :, None]
-#    elif Y.ndim == 2:
-#        Y = Y[None, ...]
-#    X = X - X.mean(1)[:, None, :]
-#    Y = Y - Y.mean(1)[:, None, :]
-#    SX2 = (X**2).sum(1) ** 0.5
-#    SY2 = (Y**2).sum(1) ** 0.5
-#    SXY = (X * Y).sum(1)
-#    return SXY / (SX2 * SY2)
+    return np.sum(mX / norm_mX * mY/norm_mY, axis=0)
 
-def r_nan(X, Y):
-    """Compute the pearson correlation between X and Y.
-    Args:
-        - X: np.Array
-        - Y: np.Array
-    Returns:
-        - out: np.Array
-    """
-    if (X.ndim == 1) and (Y.ndim == 1):
-        mask = np.isnan(X) | np.isnan(Y)
-        return pearsonr(X[~mask], Y[~mask])[0]
-    elif ((X.ndim == 1) and ~(Y.ndim == 1)) | (~(X.ndim == 1) and (Y.ndim == 1)):
-        raise ValueError(f'Dimension Mismatch between X: {X.shape} and Y: {Y.shape}')
-    elif (X.ndim == 2) and (Y.ndim == 1):
-        output = np.hstack([pearsonr(
-            X[:,i][~(np.isnan(X[:,i]) | np.isnan(Y))], 
-            Y[~(np.isnan(X[:,i]) | np.isnan(Y))]
-            )[0] for i in range(X.shape[1])])
-        return output
-    elif (X.ndim == 2) and (Y.ndim == 2):
-        assert X.shape[1]==Y.shape[1]
-        output = np.hstack([pearsonr(
-            X[:,i][~(np.isnan(X[:,i]) | np.isnan(Y[:,i]))], 
-            Y[:,i][~(np.isnan(X[:,i]) | np.isnan(Y[:,i]))]
-            )[0] for i in range(X.shape[1])])
-        return output
-    else:
-        raise ValueError(f"Input dimension X: {X.shape} and Y: {Y.shape}. Please apply ‘r‘ function on matrices with ndim=2. Correlation will be computed on axis 0.")
 
 def r2_nan(X, Y):
     """Compute the R2 coefficients between X and Y, not taken nan values into account.

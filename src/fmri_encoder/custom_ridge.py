@@ -51,10 +51,7 @@ class CustomRidge(BaseEstimator, TransformerMixin):
 
         output = np.stack(output, axis=0)
         data = np.stack([r['R2'] for r in output], axis=0)
-        
-        voxel2alpha, alpha2voxel = self.optimize_alpha(data, alpha_list)
-        self.voxel2alpha = voxel2alpha
-        self.alpha2voxel = alpha2voxel
+        self.optimize_alpha(data, alpha_list)
 
     def model_fit(self, X_train, Y_train, alpha):
         """Fit a Ridge model by first by setting the alpha.
@@ -82,7 +79,8 @@ class CustomRidge(BaseEstimator, TransformerMixin):
         alpha2voxel = {key:[] for key in hyperparameter}
         for index in range(len(voxel2alpha)):
             alpha2voxel[voxel2alpha[index]].append(index)
-        return voxel2alpha, alpha2voxel
+        self.voxel2alpha = voxel2alpha
+        self.alpha2voxel = alpha2voxel
 
     def predict(self, X_train, X_test, Y_train):
         """ Fit a model for each voxel given the parameter optimizing a measure.
