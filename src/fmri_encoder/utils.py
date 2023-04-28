@@ -87,14 +87,14 @@ def get_possible_reduction_methods():
     """
     return [None, 'pca', 'agglomerative_clustering']
 
-def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10):
+def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10, alpha_per_target=True):
     """Retrieve the 
     """
     if name=='ridgecv':
         return RidgeCV(
             np.logspace(alpha_min, alpha_max, nb_alphas),
             fit_intercept=True,
-            alpha_per_target=False,
+            alpha_per_target=alpha_per_target,
         )
     elif name=='ridge':
         return Ridge(
