@@ -78,7 +78,7 @@ def get_possible_linear_models():
     Returns:
         - list
     """
-    return ['ridgecv', 'glm']
+    return ['ridgecv', 'ridge', 'ols']
 
 def get_possible_reduction_methods():
     """Fetch possible reduction methods.
@@ -101,7 +101,7 @@ def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10):
             alpha,
             fit_intercept=True,
         )
-    elif name=='glm':
+    elif name=='ols':
         return LinearRegression(fit_intercept=True)
     elif not isinstance(name, str):
         return name 
