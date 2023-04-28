@@ -98,7 +98,7 @@ def get_linearmodel(name, alpha=1, alpha_min=-3, alpha_max=8, nb_alphas=10):
         )
     elif name=='ridge':
         return Ridge(
-            alpha
+            alpha,
             fit_intercept=True,
         )
     elif name=='glm':
