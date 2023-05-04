@@ -1,27 +1,23 @@
 import os
-import logging
 import joblib
 
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
 
 from fmri_encoder.metrics import get_metric
-from fmri_encoder.utils import get_linearmodel, check_folder
+from fmri_encoder.utils import check_folder
+from fmri_encoder.loaders import get_linearmodel
+
+from fmri_encoder.logger import console
 
 
 class Encoder(object):
-    def __init__(
-        self, 
-        linearmodel,
-        saving_folder='./tmp',
-        **model_params
-        ):
+    def __init__(self, linearmodel, saving_folder="./tmp", **model_params):
         """General class to fit linear encoding models including 'GLM' and 'Ridge', or other custom method.
         Args:
             - linearmodel: str (or custom function)
             - **model_params: dict
         """
-        logging.basicConfig(filename=os.path.join(saving_folder, 'loggings.log'), level=logging.INFO)
+        console.log(f"Instantiating Encoder model. Saved in {saving_folder}")
         self.linearmodel = get_linearmodel(linearmodel, **model_params)
         self.is_fitted = False
         check_folder(saving_folder)
@@ -39,14 +35,14 @@ class Encoder(object):
         # Encoding model
         encoding_pipe = Pipeline(
             [
-                #("scaler", StandardScaler()),
+                # ("scaler", StandardScaler()),
                 ("linearmodel", self.linearmodel),
             ]
         )
 
         # Fit
-        logging.info(f'Fitting all pipelines...')
-        encoding_pipe.fit(X,y)
+        console.log(f"Fitting Encoder...")
+        encoding_pipe.fit(X, y)
 
         # Saving pipes
         self.encoding_pipe = encoding_pipe
@@ -55,19 +51,22 @@ class Encoder(object):
             self.encoding_pipe,
             os.path.join(self.saving_folder, "encoding_pipe.joblib"),
         )
-        
+        console.log(
+            f'Encoder saved at {os.path.join(self.saving_folder, "encoding_pipe.joblib")}'
+        )
+
     def predict(self, X):
         """Use the fitted encoding model to predict fmri data from features X.
         Args:
-            - X: np.Array 
+            - X: np.Array
         Returns:
             - Y_predicted: np.Array
         """
-        logging.info(f'Predicting fMRI data using processed X...')
+        console.log(f"Predicting fMRI data using processed X...")
         prediction = self.encoding_pipe.predict(X)
         return prediction
-    
-    def eval(self, Y_predicted, Y_true, metric_name='r'):
+
+    def eval(self, Y_predicted, Y_true, metric_name="r"):
         """Compare the predicted ‘Y_predicted‘ with the ground truth ‘Y‘ using the specified ‘metric‘
         Args:
             - Y_predicted: np.Array
@@ -77,7 +76,9 @@ class Encoder(object):
             - evaluation: np.array
         """
         metric = get_metric(metric_name)
-        logging.info(f'Evaluating the match between Y_predicted and Y_true...')
+        console.log(
+            f"Evaluating the similarity between Y_predicted and Y_true, using metric {metric_name}..."
+        )
         evaluation = metric(Y_predicted, Y_true)
         return evaluation
 
@@ -87,6 +88,8 @@ class Encoder(object):
             - np.Array
         """
         if self.is_fitted:
-            return self.encoding_pipe['linearmodel'].coef_
+            return self.encoding_pipe["linearmodel"].coef_
         else:
-            logging.error(f'Encoding model not fitted. You must first fit it using self.fit(X, y=None')
+            console.log(
+                f"Encoding model not fitted. You must first fit it using self.fit(X, y=None"
+            )

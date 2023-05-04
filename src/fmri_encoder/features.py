@@ -11,11 +11,14 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 from nilearn.glm.first_level import compute_regressor
 
-from fmri_encoder.utils import get_reduction_method
+from fmri_encoder.loaders import get_reduction_method
+from fmri_encoder.logger import rich_progress_joblib
 
 
 class FMRIPipe(BaseEstimator, TransformerMixin):
-    def __init__(self, fmri_reduction_method=None, fmri_ndim=None, saving_folder="./derivatives"):
+    def __init__(
+        self, fmri_reduction_method=None, fmri_ndim=None, saving_folder="./derivatives"
+    ):
         """Set the preprocessing pipeline for fMRI data.
         Args:
             - fmri_reduction_method:str
@@ -81,7 +84,10 @@ class FMRIPipe(BaseEstimator, TransformerMixin):
 
 class FeaturesPipe(BaseEstimator, TransformerMixin):
     def __init__(
-        self, features_reduction_method=None, features_ndim=None, saving_folder="./derivatives"
+        self,
+        features_reduction_method=None,
+        features_ndim=None,
+        saving_folder="./derivatives",
     ):
         """Set the preprocessing pipeline for features.
         Args:
@@ -178,7 +184,14 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
         return X
 
     def fit_transform(
-        self, X, y=None, encoding_method="hrf", tr=2, groups=None, gentles=None, nscans=None
+        self,
+        X,
+        y=None,
+        encoding_method="hrf",
+        tr=2,
+        groups=None,
+        gentles=None,
+        nscans=None,
     ):
         """Apply ‘.fit‘ and then ‘.transform‘
         Args:
@@ -295,17 +308,22 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
         Returns:
             - dm: np.Array
         """
-        regressors = Parallel(n_jobs=n_jobs)(
-            delayed(self.compute_regressor_parallel)(
-                index,
-                X,
-                gentle,
-                nscan,
-                self.tr,
-                self.oversampling,
+        with rich_progress_joblib(
+            "Convolving each regressor with the haemodynamic Kernel",
+            total=X.shape[-1],
+            verbose=True,
+        ):
+            regressors = Parallel(n_jobs=n_jobs)(
+                delayed(self.compute_regressor_parallel)(
+                    index,
+                    X,
+                    gentle,
+                    nscan,
+                    self.tr,
+                    self.oversampling,
+                )
+                for index in range(X.shape[-1])
             )
-            for index in tqdm(range(X.shape[-1]), desc="compute dm hrf")
-        )
         dm = np.concatenate(regressors, axis=1)
         return dm
 
@@ -369,7 +387,9 @@ class DesignMatrixBuilder(BaseEstimator, TransformerMixin):
                 if isinstance(gentle, str):
                     gentle = np.load(gentle)
                 nscan = self.nscans[i]
-                output.append(self.compute_dm_hrf(X_, nscan, gentle, n_jobs=self.n_jobs))
+                output.append(
+                    self.compute_dm_hrf(X_, nscan, gentle, n_jobs=self.n_jobs)
+                )
             X = np.concatenate(output)
         elif self.method == "fir":
             X = self.compute_dm_fir(

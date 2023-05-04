@@ -11,3 +11,4 @@ nilearn
 matplotlib
 tqdm
 pytest
+rich
