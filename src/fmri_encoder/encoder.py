@@ -66,7 +66,7 @@ class Encoder(object):
         prediction = self.encoding_pipe.predict(X)
         return prediction
 
-    def eval(self, Y_predicted, Y_true, metric_name="r"):
+    def eval(self, Y_predicted, Y_true, metric_name="r", axis=-1):
         """Compare the predicted ‘Y_predicted‘ with the ground truth ‘Y‘ using the specified ‘metric‘
         Args:
             - Y_predicted: np.Array
@@ -79,7 +79,7 @@ class Encoder(object):
         console.log(
             f"Evaluating the similarity between Y_predicted and Y_true, using metric {metric_name}..."
         )
-        evaluation = metric(Y_predicted, Y_true)
+        evaluation = metric(Y_predicted, Y_true, axis=axis)
         return evaluation
 
     def get_coef(self):
