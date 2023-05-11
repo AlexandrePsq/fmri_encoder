@@ -16,7 +16,7 @@ class CustomRidge(BaseEstimator, TransformerMixin):
         self.alpha_min = alpha_min
         self.alpha_max = alpha_max
         self.nb_alphas = nb_alphas
-        if len(nscans) == 1:
+        if (nscans is None) or (len(nscans) == 1):
             self.nscans = [
                 nscans[0] // 3,
                 nscans[0] // 3,
