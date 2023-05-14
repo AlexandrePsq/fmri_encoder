@@ -12,3 +12,4 @@ matplotlib
 tqdm
 pytest
 rich
+omegaconf

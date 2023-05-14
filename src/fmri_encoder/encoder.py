@@ -1,10 +1,11 @@
 import os
 import joblib
+import omegaconf as Oc
 
 from sklearn.pipeline import Pipeline
 
 from fmri_encoder.metrics import get_metric
-from fmri_encoder.utils import check_folder
+from fmri_encoder.utils import check_folder, read_yaml
 from fmri_encoder.loaders import get_linearmodel
 
 from fmri_encoder.logger import console
@@ -93,3 +94,27 @@ class Encoder(object):
             console.log(
                 f"Encoding model not fitted. You must first fit it using self.fit(X, y=None"
             )
+
+    @classmethod
+    def from_pretrained(cls, config):
+        """Load pre-traind Encoder.
+        Args:
+            - config: OmegaConf config file
+            Should contain the variables:
+                - weights_path: str (path to encoding pipeline)
+                - linearmodel: str
+                - model_params: dict
+        Returns:
+            - encoder: Encoder
+        """
+        if isinstance(config, dict):
+            config = Oc.create(config)
+        elif ("yml" in config) or ("yaml" in config):
+            config = Oc.load(config)
+        saving_folder = os.path.dirname(config.weights_path)
+        linearmodel = get_linearmodel(config.linearmodel, **config.model_params)
+        encoder = Encoder(linearmodel=linearmodel, saving_folder=saving_folder)
+        encoder.encoding_pipe = joblib.load(config.weights_path)
+        encoder.is_fitted = True
+        encoder.saving_folder = saving_folder
+        return encoder
