@@ -1,6 +1,6 @@
 import os
 import joblib
-import omegaconf as Oc
+from omegaconf import OmegaConf
 
 from sklearn.pipeline import Pipeline
 
@@ -108,9 +108,9 @@ class Encoder(object):
             - encoder: Encoder
         """
         if isinstance(config, dict):
-            config = Oc.create(config)
+            config = OmegaConf.create(config)
         elif ("yml" in config) or ("yaml" in config):
-            config = Oc.load(config)
+            config = OmegaConf.load(config)
         saving_folder = os.path.dirname(config.weights_path)
         linearmodel = get_linearmodel(config.linearmodel, **config.model_params)
         encoder = Encoder(linearmodel=linearmodel, saving_folder=saving_folder)
