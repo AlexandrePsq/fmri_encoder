@@ -12,7 +12,7 @@ from fmri_encoder.logger import console
 
 
 class Encoder(object):
-    def __init__(self, linearmodel, saving_folder="./tmp", **model_params):
+    def __init__(self, linearmodel, saving_folder=None, **model_params):
         """General class to fit linear encoding models including 'GLM' and 'Ridge', or other custom method.
         Args:
             - linearmodel: str (or custom function)
@@ -21,7 +21,8 @@ class Encoder(object):
         console.log(f"Instantiating Encoder model. Saved in {saving_folder}")
         self.linearmodel = get_linearmodel(linearmodel, **model_params)
         self.is_fitted = False
-        check_folder(saving_folder)
+        if saving_folder is not None:
+            check_folder(saving_folder)
         self.saving_folder = saving_folder
 
     def fit(self, X, y):
@@ -48,13 +49,14 @@ class Encoder(object):
         # Saving pipes
         self.encoding_pipe = encoding_pipe
         self.is_fitted = True
-        joblib.dump(
-            self.encoding_pipe,
-            os.path.join(self.saving_folder, "encoding_pipe.joblib"),
-        )
-        console.log(
-            f'Encoder saved at {os.path.join(self.saving_folder, "encoding_pipe.joblib")}'
-        )
+        if self.saving_folder is not None:
+            joblib.dump(
+                self.encoding_pipe,
+                os.path.join(self.saving_folder, "encoding_pipe.joblib"),
+            )
+            console.log(
+                f'Encoder saved at {os.path.join(self.saving_folder, "encoding_pipe.joblib")}'
+            )
 
     def predict(self, X):
         """Use the fitted encoding model to predict fmri data from features X.
