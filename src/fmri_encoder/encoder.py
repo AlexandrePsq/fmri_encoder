@@ -12,18 +12,20 @@ from fmri_encoder.logger import console
 
 
 class Encoder(object):
-    def __init__(self, linearmodel, saving_folder=None, **model_params):
+    def __init__(self, linearmodel, saving_folder=None, verbose=True, **model_params):
         """General class to fit linear encoding models including 'GLM' and 'Ridge', or other custom method.
         Args:
             - linearmodel: str (or custom function)
             - **model_params: dict
         """
-        console.log(f"Instantiating Encoder model. Saved in {saving_folder}")
+        if verbose:
+            console.log(f"Instantiating Encoder model. Saved in {saving_folder}")
         self.linearmodel = get_linearmodel(linearmodel, **model_params)
         self.is_fitted = False
         if saving_folder is not None:
             check_folder(saving_folder)
         self.saving_folder = saving_folder
+        self.verbose = verbose
 
     def fit(self, X, y):
         """Fit the encoding model using Features X and fmri data y.
@@ -43,7 +45,8 @@ class Encoder(object):
         )
 
         # Fit
-        console.log(f"Fitting Encoder...")
+        if self.verbose:
+            console.log(f"Fitting Encoder...")
         encoding_pipe.fit(X, y)
 
         # Saving pipes
@@ -54,9 +57,10 @@ class Encoder(object):
                 self.encoding_pipe,
                 os.path.join(self.saving_folder, "encoding_pipe.joblib"),
             )
-            console.log(
-                f'Encoder saved at {os.path.join(self.saving_folder, "encoding_pipe.joblib")}'
-            )
+            if self.verbose:
+                console.log(
+                    f'Encoder saved at {os.path.join(self.saving_folder, "encoding_pipe.joblib")}'
+                )
 
     def predict(self, X):
         """Use the fitted encoding model to predict fmri data from features X.
@@ -65,7 +69,8 @@ class Encoder(object):
         Returns:
             - Y_predicted: np.Array
         """
-        console.log(f"Predicting fMRI data using processed X...")
+        if self.verbose:
+            console.log(f"Predicting fMRI data using processed X...")
         prediction = self.encoding_pipe.predict(X)
         return prediction
 
@@ -79,9 +84,10 @@ class Encoder(object):
             - evaluation: np.array
         """
         metric = get_metric(metric_name)
-        console.log(
-            f"Evaluating the similarity between Y_predicted and Y_true, using metric {metric_name}..."
-        )
+        if self.verbose:
+            console.log(
+                f"Evaluating the similarity between Y_predicted and Y_true, using metric {metric_name}..."
+            )
         evaluation = metric(Y_predicted, Y_true, axis=axis)
         return evaluation
 
@@ -93,9 +99,10 @@ class Encoder(object):
         if self.is_fitted:
             return self.encoding_pipe["linearmodel"].coef_
         else:
-            console.log(
-                f"Encoding model not fitted. You must first fit it using self.fit(X, y=None"
-            )
+            if self.verbose:
+                console.log(
+                    f"Encoding model not fitted. You must first fit it using self.fit(X, y=None"
+                )
 
     @classmethod
     def from_pretrained(cls, config):
