@@ -1,3 +1,7 @@
+import warnings
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
+
 import os
 import joblib
 from omegaconf import OmegaConf
