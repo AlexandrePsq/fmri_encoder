@@ -101,7 +101,7 @@ Summarized as:
 from fmri_encoder.lazy import default_cv_encoder
 
 output_dict = default_cv_encoder(X, Y, return_preds=False)
-# output_dict = {"encoder": encoder, "scores": scores, "cv_score": cv_score, "predictions": predictions}
+# output_dict = {"scores": scores, "cv_score": cv_score, "predictions": predictions}
 ```
 
 ### 3) Aligning features and fMRI brain data
@@ -199,7 +199,7 @@ from fmri_encoder.lazy import default_process_and_cv_encode
 output_dict = default_process_and_cv_encode(
     X, Y, offsets, tr, output_folder="./", return_preds=False
 )
-# output_dict = {"encoder": encoder, "scores": scores, "cv_score": cv_score, "predictions": predictions}
+# output_dict = {"scores": scores, "cv_score": cv_score, "predictions": predictions}
 ```
 
 
