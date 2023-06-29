@@ -180,6 +180,7 @@ Summarized as:
 ```python
 from fmri_encoder.lazy import default_processing
 
+masker_path = "masker" # put the path to your masker (without the extension: '.nii.gz', '.yml', ...)
 output_dict = default_processing(X, Y, offsets, tr)
 # output_dict = {"X": X, "Y": Y, "masker": masker}
 ```
@@ -196,8 +197,9 @@ from fmri_encoder.lazy import default_process_and_cv_encode
 # X list of np.Arrays
 # Y list of np.Arrays
 # offsets list of np.Arrays
+masker_path = "masker" # put the path to your masker (without the extension: '.nii.gz', '.yml', ...)
 output_dict = default_process_and_cv_encode(
-    X, Y, offsets, tr, return_preds=False
+    X, Y, offsets, tr, return_preds=False, masker_path=masker_path
 )
 # output_dict = {"scores": scores, "cv_score": cv_score, "predictions": predictions}
 ```

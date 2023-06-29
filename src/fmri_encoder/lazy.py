@@ -126,7 +126,9 @@ def default_processing(X, offsets, tr, Y=None, nscans=None, masker_path="masker"
     return {"X": X, "Y": Y, "masker": masker, "nscans": nscans}
 
 
-def default_process_and_cv_encode(X, Y, offsets, tr, return_preds=False):
+def default_process_and_cv_encode(
+    X, Y, offsets, tr, return_preds=False, masker_path="masker"
+):
     """
     Run a cross-validated encoder with default parameters.
     Args:
@@ -136,7 +138,7 @@ def default_process_and_cv_encode(X, Y, offsets, tr, return_preds=False):
         - offsets: list of np.Arrays
         - return_preds: bool
     """
-    processed_data = default_processing(X, offsets, tr, Y)
+    processed_data = default_processing(X, offsets, tr, Y, masker_path=masker_path)
     X = processed_data["X"]
     Y = processed_data["Y"]
 
@@ -156,12 +158,16 @@ def default_process_multipleX_and_cv_encode(Xs, Y, offsets, tr, return_preds=Fal
         - offsets: list of list of np.Arrays
         - return_preds: bool
     """
-    processed_data = default_processing(Xs[0], offsets[0], tr, Y)
+    processed_data = default_processing(
+        Xs[0], offsets[0], tr, Y, masker_path=masker_path
+    )
     X = processed_data["X"]
     Y = processed_data["Y"]
     nscans = processed_data["nscans"]
     for X_i, offset_i in zip(Xs[1:], offsets[1:]):
-        processed_data = default_processing(X_i, offset_i, tr, Y=None, nscans=nscans)
+        processed_data = default_processing(
+            X_i, offset_i, tr, Y=None, nscans=nscans, masker_path=masker_path
+        )
         X = [np.hstack([X[j], processed_data["X"][j]]) for j in range(len(X))]
 
     output = default_cv_encoder(X, Y, return_preds=return_preds)
