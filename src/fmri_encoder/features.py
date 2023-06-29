@@ -16,9 +16,7 @@ from fmri_encoder.logger import rich_progress_joblib
 
 
 class FMRIPipe(BaseEstimator, TransformerMixin):
-    def __init__(
-        self, fmri_reduction_method=None, fmri_ndim=None, saving_folder="./derivatives"
-    ):
+    def __init__(self, fmri_reduction_method=None, fmri_ndim=None, saving_folder=None):
         """Set the preprocessing pipeline for fMRI data.
         Args:
             - fmri_reduction_method:str
@@ -53,10 +51,11 @@ class FMRIPipe(BaseEstimator, TransformerMixin):
             ]
         )
         self.fmri_pipe.fit(X, y=y)
-        joblib.dump(
-            self.fmri_pipe,
-            os.path.join(self.saving_folder, "fmri_pipe.joblib"),
-        )
+        if self.saving_folder is not None:
+            joblib.dump(
+                self.fmri_pipe,
+                os.path.join(self.saving_folder, "fmri_pipe.joblib"),
+            )
 
     def transform(self, X):
         """Remove the identified features learnt when calling the ‘fit‘ module.
@@ -87,7 +86,7 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
         self,
         features_reduction_method=None,
         features_ndim=None,
-        saving_folder="./derivatives",
+        saving_folder=None,
     ):
         """Set the preprocessing pipeline for features.
         Args:
@@ -126,10 +125,11 @@ class FeaturesPipe(BaseEstimator, TransformerMixin):
             ]
         )
         self.features_pipe.fit(X, y=y)
-        joblib.dump(
-            self.features_pipe,
-            os.path.join(self.saving_folder, "features_pipe.joblib"),
-        )
+        if self.saving_folder is not None:
+            joblib.dump(
+                self.features_pipe,
+                os.path.join(self.saving_folder, "features_pipe.joblib"),
+            )
 
     def transform(
         self,
