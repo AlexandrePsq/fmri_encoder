@@ -106,7 +106,7 @@ output_dict = default_cv_encoder(X, Y, return_preds=False)
 
 ### 3) Aligning features and fMRI brain data
 
-Load all data from `https://osf.io/73nvu/`, and put everything into a folder named `data` at the root of the this Github repository.
+Load all data from `https://osf.io/73nvu/`, and put everything into a folder named `data` at the root of this Github repository.
 
 ```python
 import os, glob
