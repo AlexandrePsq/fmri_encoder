@@ -69,7 +69,7 @@ def default_cv_encoder(X, Y, return_preds=False):
     }
 
 
-def default_processing(X, offsets, tr, Y=None, output_folder="./", nscans=None):
+def default_processing(X, offsets, tr, Y=None, nscans=None, masker_path="masker"):
     """
     Run a cross-validated encoder with default parameters.
     Args:
@@ -77,9 +77,10 @@ def default_processing(X, offsets, tr, Y=None, output_folder="./", nscans=None):
         - Y: list of np.Arrays
         - tr: float
         - offsets: list of np.Arrays
+        - masker_path: str (path without the extension)
+        - nscans: list of int
     """
     # Instantiating the encoding model
-    check_folder(output_folder)
     encoding_method = "hrf"
 
     assert len(offsets) == len(X)
@@ -94,9 +95,6 @@ def default_processing(X, offsets, tr, Y=None, output_folder="./", nscans=None):
         # Instantiating the fMRI data processing pipeline
         fmri_pipe = FMRIPipe(fmri_reduction_method=None, fmri_ndim=None)
         # Fetch or create a masker object that retrieve the voxels of interest in the brain
-        masker_path = os.path.join(
-            output_folder, "masker"
-        )  # path without the extension !!
         masker = fetch_masker(masker_path, Y, **{"detrend": True, "standardize": True})
 
         # Preprocess fmri data with the masker
@@ -128,9 +126,7 @@ def default_processing(X, offsets, tr, Y=None, output_folder="./", nscans=None):
     return {"X": X, "Y": Y, "masker": masker, "nscans": nscans}
 
 
-def default_process_and_cv_encode(
-    X, Y, offsets, tr, output_folder="./", return_preds=False
-):
+def default_process_and_cv_encode(X, Y, offsets, tr, return_preds=False):
     """
     Run a cross-validated encoder with default parameters.
     Args:
@@ -140,7 +136,7 @@ def default_process_and_cv_encode(
         - offsets: list of np.Arrays
         - return_preds: bool
     """
-    processed_data = default_processing(X, offsets, tr, Y, output_folder=output_folder)
+    processed_data = default_processing(X, offsets, tr, Y)
     X = processed_data["X"]
     Y = processed_data["Y"]
 
@@ -149,9 +145,7 @@ def default_process_and_cv_encode(
     return output
 
 
-def default_process_multipleX_and_cv_encode(
-    Xs, Y, offsets, tr, output_folder="./", return_preds=False
-):
+def default_process_multipleX_and_cv_encode(Xs, Y, offsets, tr, return_preds=False):
     """
     Preprocess multiple features and brain data and then run a
     cross-validated encoder with default parameters.
@@ -162,16 +156,12 @@ def default_process_multipleX_and_cv_encode(
         - offsets: list of list of np.Arrays
         - return_preds: bool
     """
-    processed_data = default_processing(
-        Xs[0], offsets[0], tr, Y, output_folder=output_folder
-    )
+    processed_data = default_processing(Xs[0], offsets[0], tr, Y)
     X = processed_data["X"]
     Y = processed_data["Y"]
     nscans = processed_data["nscans"]
     for X_i, offset_i in zip(Xs[1:], offsets[1:]):
-        processed_data = default_processing(
-            X_i, offset_i, tr, Y=None, nscans=nscans, output_folder=output_folder
-        )
+        processed_data = default_processing(X_i, offset_i, tr, Y=None, nscans=nscans)
         X = [np.hstack([X[j], processed_data["X"][j]]) for j in range(len(X))]
 
     output = default_cv_encoder(X, Y, return_preds=return_preds)
