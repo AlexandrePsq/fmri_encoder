@@ -165,6 +165,7 @@ def default_process_multipleX_and_cv_encode(
     )
     X = processed_data["X"]
     Y = processed_data["Y"]
+    masker = processed_data["masker"]
     nscans = processed_data["nscans"]
     for X_i, offset_i in zip(Xs[1:], offsets[1:]):
         processed_data = default_processing(
@@ -173,5 +174,6 @@ def default_process_multipleX_and_cv_encode(
         X = [np.hstack([X[j], processed_data["X"][j]]) for j in range(len(X))]
 
     output = default_cv_encoder(X, Y, return_preds=return_preds)
+    output["masker"] = masker
 
     return output
