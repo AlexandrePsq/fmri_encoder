@@ -69,7 +69,7 @@ def default_cv_encoder(X, Y, return_preds=False):
     }
 
 
-def default_processing(X, Y, offsets, tr, output_folder="./"):
+def default_processing(X, offsets, tr, Y=None, output_folder="./", nscans=None):
     """
     Run a cross-validated encoder with default parameters.
     Args:
@@ -83,10 +83,27 @@ def default_processing(X, Y, offsets, tr, output_folder="./"):
     encoding_method = "hrf"
 
     assert len(offsets) == len(X)
-    assert len(Y) == len(X)
+    if Y is not None:
+        assert len(Y) == len(X)
+    else:
+        masker = None
+        assert nscans is not None
+        assert len(nscans) == len(X)
 
-    # Instantiating the fMRI data processing pipeline
-    fmri_pipe = FMRIPipe(fmri_reduction_method=None, fmri_ndim=None)
+    if Y is not None:
+        # Instantiating the fMRI data processing pipeline
+        fmri_pipe = FMRIPipe(fmri_reduction_method=None, fmri_ndim=None)
+        # Fetch or create a masker object that retrieve the voxels of interest in the brain
+        masker_path = os.path.join(
+            output_folder, "masker"
+        )  # path without the extension !!
+        masker = fetch_masker(masker_path, Y, **{"detrend": True, "standardize": True})
+
+        # Preprocess fmri data with the masker
+        Y = [masker.transform(f) for f in Y]
+        nscans = [f.shape[0] for f in Y]  # Number of scans per session
+        Y = [fmri_pipe.fit_transform(y) for y in Y]
+
     # Instantiating the features processing pipeline
     features_reduction_method = (
         None  # you can reduce the dimension if you want: 'pca', ...
@@ -95,15 +112,6 @@ def default_processing(X, Y, offsets, tr, output_folder="./"):
     features_pipe = FeaturesPipe(
         features_reduction_method=features_reduction_method, features_ndim=features_ndim
     )
-
-    # Fetch or create a masker object that retrieve the voxels of interest in the brain
-    masker_path = os.path.join(output_folder, "masker")  # path without the extension !!
-    masker = fetch_masker(masker_path, Y, **{"detrend": True, "standardize": True})
-
-    # Preprocess fmri data with the masker
-    Y = [masker.transform(f) for f in Y]
-    nscans = [f.shape[0] for f in Y]  # Number of scans per session
-    Y = [fmri_pipe.fit_transform(y) for y in Y]
 
     # Preprocess features
     X = [
@@ -117,7 +125,7 @@ def default_processing(X, Y, offsets, tr, output_folder="./"):
         )
         for (x, offset_x, nscan_x) in zip(X, offsets, nscans)
     ]
-    return {"X": X, "Y": Y, "masker": masker}
+    return {"X": X, "Y": Y, "masker": masker, "nscans": nscans}
 
 
 def default_process_and_cv_encode(
@@ -132,9 +140,39 @@ def default_process_and_cv_encode(
         - offsets: list of np.Arrays
         - return_preds: bool
     """
-    processed_data = default_processing(X, Y, offsets, tr, output_folder=output_folder)
+    processed_data = default_processing(X, offsets, tr, Y, output_folder=output_folder)
     X = processed_data["X"]
     Y = processed_data["Y"]
+
+    output = default_cv_encoder(X, Y, return_preds=return_preds)
+
+    return output
+
+
+def default_process_multipleX_and_cv_encode(
+    Xs, Y, offsets, tr, output_folder="./", return_preds=False
+):
+    """
+    Preprocess multiple features and brain data and then run a
+    cross-validated encoder with default parameters.
+    Args:
+        - X: list of list of np.Arrays
+        - Y: list of np.Arrays
+        - tr: float
+        - offsets: list of list of np.Arrays
+        - return_preds: bool
+    """
+    processed_data = default_processing(
+        Xs[0], offsets[0], tr, Y, output_folder=output_folder
+    )
+    X = processed_data["X"]
+    Y = processed_data["Y"]
+    nscans = processed_data["nscans"]
+    for X_i, offset_i in zip(Xs[1:], offsets[1:]):
+        processed_data = default_processing(
+            X_i, offset_i, tr, Y=None, nscans=nscans, output_folder=output_folder
+        )
+        X = [np.hstack([X[j], processed_data["X"][j]]) for j in range(len(X))]
 
     output = default_cv_encoder(X, Y, return_preds=return_preds)
 
