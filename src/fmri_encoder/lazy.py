@@ -147,7 +147,9 @@ def default_process_and_cv_encode(
     return output
 
 
-def default_process_multipleX_and_cv_encode(Xs, Y, offsets, tr, return_preds=False):
+def default_process_multipleX_and_cv_encode(
+    Xs, Y, offsets, tr, return_preds=False, masker_path="masker"
+):
     """
     Preprocess multiple features and brain data and then run a
     cross-validated encoder with default parameters.
