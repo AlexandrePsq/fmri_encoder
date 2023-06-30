@@ -160,7 +160,7 @@ def default_process_multipleX_and_cv_encode(
         - return_preds: bool
     """
     processed_data = default_processing(
-        Xs[0], offsets[0], tr, Y, masker_path=masker_path
+        Xs[0], offsets[0], tr=tr, Y=Y, masker_path=masker_path
     )
     X = processed_data["X"]
     Y = processed_data["Y"]
@@ -170,19 +170,19 @@ def default_process_multipleX_and_cv_encode(
 
     for X_i, offset_i in zip(Xs[1:], offsets[1:]):
         processed_data = default_processing(
-            X_i, offset_i, tr, Y=None, nscans=nscans, masker_path=masker_path
+            X_i, offset_i, tr=tr, Y=None, nscans=nscans, masker_path=masker_path
         )
         X = [np.hstack([X[j], processed_data["X"][j]]) for j in range(len(X))]
-        X_shapes.append([X_i.shape for X_i in processed_data["X"]])
+        X_shapes.append([X_j.shape for X_j in processed_data["X"]])
 
     X_shapes = list(zip(*X_shapes))
     logs = "\n".join(
         [
             f" \
-                Run {i}: * X.shape = {X_shapes[i]}\
-                -------- * Y.shape = {Y[i].shape} \
-                "
-            for i in range(len(X_shapes))
+    Run {i+1}: \
+        * X.shape = {X_i}\
+        * Y.shape = {Y_i.shape}"
+            for i, (X_i, Y_i) in enumerate(zip(X_shapes, Y))
         ]
     )
     console.log(logs)
