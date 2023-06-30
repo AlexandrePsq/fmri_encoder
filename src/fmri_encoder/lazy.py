@@ -1,10 +1,9 @@
-import os
 import numpy as np
 from fmri_encoder.encoder import Encoder
 from fmri_encoder.data import fetch_masker
 from fmri_encoder.loaders import get_groups
-from fmri_encoder.utils import check_folder
 from sklearn.model_selection import LeavePOut
+from fmri_encoder.logger import console
 from fmri_encoder.features import FMRIPipe, FeaturesPipe
 
 
@@ -167,11 +166,26 @@ def default_process_multipleX_and_cv_encode(
     Y = processed_data["Y"]
     masker = processed_data["masker"]
     nscans = processed_data["nscans"]
+    X_shapes = [[X_i.shape for X_i in X]]
+
     for X_i, offset_i in zip(Xs[1:], offsets[1:]):
         processed_data = default_processing(
             X_i, offset_i, tr, Y=None, nscans=nscans, masker_path=masker_path
         )
         X = [np.hstack([X[j], processed_data["X"][j]]) for j in range(len(X))]
+        X_shapes.append([X_i.shape for X_i in processed_data["X"]])
+
+    X_shapes = list(zip(*X_shapes))
+    logs = "\n".join(
+        [
+            f" \
+                Run {i}: * X.shape = {X_shapes[i]}\
+                -------- * Y.shape = {Y[i].shape} \
+                "
+            for i in range(len(X_shapes))
+        ]
+    )
+    console.log(logs)
 
     output = default_cv_encoder(X, Y, return_preds=return_preds)
     output["masker"] = masker
