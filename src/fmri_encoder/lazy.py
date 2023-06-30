@@ -1,5 +1,5 @@
 import numpy as np
-import nibabel as nib
+from nilearn.image import clean_img
 from fmri_encoder.encoder import Encoder
 from fmri_encoder.data import fetch_masker
 from fmri_encoder.loaders import get_groups
