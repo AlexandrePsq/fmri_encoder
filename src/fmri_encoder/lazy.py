@@ -1,4 +1,5 @@
 import numpy as np
+import nibabel as nib
 from fmri_encoder.encoder import Encoder
 from fmri_encoder.data import fetch_masker
 from fmri_encoder.loaders import get_groups
@@ -97,6 +98,7 @@ def default_processing(X, offsets, tr, Y=None, nscans=None, masker_path="masker"
         masker = fetch_masker(masker_path, Y, **{"detrend": True, "standardize": True})
 
         # Preprocess fmri data with the masker
+        Y = [clean_img(f, ensure_finite=True) for f in Y]
         Y = [masker.transform(f) for f in Y]
         nscans = [f.shape[0] for f in Y]  # Number of scans per session
         Y = [fmri_pipe.fit_transform(y) for y in Y]
