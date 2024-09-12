@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import nibabel as nib
 from nilearn import image, maskers, masking
 from fmri_encoder.utils import read_yaml, save_yaml
@@ -106,3 +107,28 @@ def intersect_binary(img1, img2):
         "img==2", img=image.math_img("img1+img2", img1=img1, img2=img2)
     )
     return intersection
+
+
+def process_fmri_data(fmri_paths, masker, language="english", save=False):
+    """Load fMRI data from given paths and mask it with a given masker.
+    Preprocess it to avoid NaN value when using Pearson
+    Correlation coefficients in the following analysis.
+    Arguments:
+        - fmri_paths: list (of string)
+        - masker: NiftiMasker object
+    Returns:
+        - data: list of length #runs (np.array of shape: #scans * #voxels)
+    """
+    data = [masker.transform(f) for f in fmri_paths]
+    # voxels with activation at zero at each time step generate a nan-value pearson correlation => we add a small variation to the first element
+    for run in range(len(data)):
+        zero = np.zeros(data[run].shape[0])
+        new = zero.copy()
+        new[0] += np.random.random() / 1000
+        data[run] = np.apply_along_axis(
+            lambda x: x if not np.array_equal(x, zero) else new, 0, data[run]
+        )
+    if save:
+        for index, run in enumerate(data):
+            np.save(fmri_paths[index].replace(".nii.gz", ".npy"), run.T)
+    return data
